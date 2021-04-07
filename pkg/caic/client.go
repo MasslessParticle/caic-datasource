@@ -1,19 +1,19 @@
 package caic
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"regexp"
 )
 
-type CaicClient struct {
+type Client struct {
 	http    doer
 	caicURL string
 }
 
 type Zone struct {
-	Index  string
 	Name   string
 	Url    string
 	Rating string
@@ -23,38 +23,52 @@ type doer interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-func NewClient(caicURL string, http doer) *CaicClient {
-	return &CaicClient{
+func NewClient(caicURL string, http doer) *Client {
+	return &Client{
 		http:    http,
 		caicURL: caicURL,
 	}
 }
 
-func (c *CaicClient) StateSummary() []Zone {
+func (c *Client) CanConnect() bool {
+	_, err := c.doRequest()
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func (c *Client) StateSummary() ([]Zone, error) {
+	resp, err := c.doRequest()
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResponse(string(b)), nil
+}
+
+func (c *Client) doRequest() (*http.Response, error) {
 	req, err := http.NewRequest("get", c.caicURL+"/caic/fx_map.php", nil)
 	if err != nil {
-		//TODO, how to propagate errors in the plugin
-		log.Printf("error creating request")
-		return nil
+		return nil, err
 	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		//TODO, how to propagate errors in the plugin
-		log.Printf("error making request to website")
-		return nil
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	//TODO what about an error from the wobsite?
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		//TODO, how to propagate errors in the plugin
-		log.Printf("error reading response")
-		return nil
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprint("unexpected status code ", resp.StatusCode))
 	}
-
-	return parseResponse(string(b))
+	return resp, nil
 }
 
 func parseResponse(caicResponse string) []Zone {
@@ -65,7 +79,7 @@ func parseResponse(caicResponse string) []Zone {
 	var z []Zone
 	for _, m := range matches {
 		z = append(z, Zone{
-			Index:  m[1],
+			// Index:  m[1], TODO: I don't need it right now
 			Name:   m[2],
 			Url:    m[3],
 			Rating: m[4],
