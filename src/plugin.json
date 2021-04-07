@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "caic-datasouce",
+  "id": "grafana-caic-datasource",
+  "metrics": true,
+  "backend": true,
+  "executable": "gpx_caic",
+  "info": {
+    "description": "Visualize data from the Colorado Avalanche Information Center",
+    "author": {
+      "name": "Travis Patterson",
+      "url": "grafanalabs.com"
+    },
+    "keywords": [
+      "avalanche",
+      "snow",
+      "Colorado",
+      "AIARE",
+      "backcountry",
+      "CAIC"
+    ],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Website",
+        "url": "https://github.com/grafana/grafana-starter-datasource-backend"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/grafana/grafana-starter-datasource-backend/blob/master/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=7.0.0",
+    "plugins": []
+  }
+}
