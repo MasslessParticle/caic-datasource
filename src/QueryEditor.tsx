@@ -1,49 +1,44 @@
-import defaults from 'lodash/defaults';
-
-import React, { ChangeEvent, PureComponent } from 'react';
-import { LegacyForms } from '@grafana/ui';
-import { QueryEditorProps } from '@grafana/data';
+import React, { PureComponent } from 'react';
+import { Select } from '@grafana/ui';
+import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
-import { defaultQuery, MyDataSourceOptions, MyQuery } from './types';
+import { MyDataSourceOptions, ZoneQuery } from './types';
 
-const { FormField } = LegacyForms;
+const ZONES: Array<SelectableValue<string>> = [
+  { label: 'Entire State', value: 'entire_statea' },
+  { label: 'Steamboat & Flat Tops', value: 'steamboat_flat_tops' },
+  { label: 'Front Range', value: 'front_range' },
+  { label: 'Vail & Summit County', value: 'vail_summit_county' },
+  { label: 'Sawatch Range', value: 'sawatch_range' },
+  { label: 'Aspen', value: 'aspen' },
+  { label: 'Gunnison', value: 'gunnison' },
+  { label: 'Grand Mesa', value: 'grand_mesa' },
+  { label: 'Northern San Juan', value: 'northern_san_juan' },
+  { label: 'Southern San Juan', value: 'southern_san_juan' },
+  { label: 'Sangre de Cristo', value: 'sangre_de_criso' },
+  { label: 'Northern Mountains', value: 'northern_mountains' },
+  { label: 'Central Mountains', value: 'central_mountians' },
+  { label: 'Southern Mountains', value: 'southern_mountains' },
+];
 
-type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
+const DEFAULT_ZONE = {
+  label: 'Entire State',
+  value: 'entire_state',
+};
+
+type Props = QueryEditorProps<DataSource, ZoneQuery, MyDataSourceOptions>;
 
 export class QueryEditor extends PureComponent<Props> {
-  onQueryTextChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query } = this.props;
-    onChange({ ...query, queryText: event.target.value });
-  };
-
-  onConstantChange = (event: ChangeEvent<HTMLInputElement>) => {
+  onRegionChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = this.props;
-    onChange({ ...query, constant: parseFloat(event.target.value) });
-    // executes the query
+    onChange({ ...query, zone: value.value });
     onRunQuery();
   };
 
   render() {
-    const query = defaults(this.props.query, defaultQuery);
-    const { queryText, constant } = query;
-
     return (
       <div className="gf-form">
-        <FormField
-          width={4}
-          value={constant}
-          onChange={this.onConstantChange}
-          label="Constant"
-          type="number"
-          step="0.1"
-        />
-        <FormField
-          labelWidth={8}
-          value={queryText || ''}
-          onChange={this.onQueryTextChange}
-          label="Query Text"
-          tooltip="Not used yet"
-        />
+        <Select width={20} options={ZONES} value={DEFAULT_ZONE} onChange={this.onRegionChange} />
       </div>
     );
   }

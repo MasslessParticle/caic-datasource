@@ -1,12 +1,11 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
-export interface MyQuery extends DataQuery {
-  queryText?: string;
-  constant: number;
+export interface ZoneQuery extends DataQuery {
+  zone?: string;
 }
 
-export const defaultQuery: Partial<MyQuery> = {
-  constant: 6.5,
+export const defaultQuery: Partial<ZoneQuery> = {
+  zone: 'entire_state',
 };
 
 /**
