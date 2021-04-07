@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
@@ -15,7 +16,7 @@ import (
 func DatasourceOpts() datasource.ServeOpts {
 	im := datasource.NewInstanceManager(caicDataSourceInstance)
 	h := &Handler{
-		im: im, //handler can instantiate datasource with the instance manager
+		im: im, //handler can instantiate datasource with the instance manager. The instance is whatever caicDataSourceInstance
 	}
 
 	return datasource.ServeOpts{
@@ -33,6 +34,7 @@ type Handler struct {
 func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	zones, err := h.getZones(req)
 	if err != nil {
+		log.DefaultLogger.Error(err.Error())
 		return nil, err
 	}
 
@@ -73,10 +75,13 @@ func (h *Handler) zonesToResponse(zones []caic.Zone) backend.DataResponse {
 func (h *Handler) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	ds, err := h.datasource(req.PluginContext)
 	if err != nil {
-		return nil, err
+		return &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: err.Error(),
+		}, nil
 	}
 
-	if ds.client.CanConnect() {
+	if !ds.client.CanConnect() {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: "Error reaching CAIC site",

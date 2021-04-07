@@ -18,6 +18,7 @@ func TestClientGetsStateSummary(t *testing.T) {
 	t.Run("it calls the right url for the whole state", func(t *testing.T) {
 		client.StateSummary()
 		require.Equal(t, baseURL+"/caic/fx_map.php", fakeHttp.req.URL.String())
+		require.Equal(t, http.MethodGet, fakeHttp.req.Method)
 	})
 
 	t.Run("it returns an array of state zones", func(t *testing.T) {

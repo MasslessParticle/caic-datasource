@@ -1,5 +1,5 @@
 {
-  "name": "grafana-caic",
+  "name": "caic-datasource",
   "version": "1.0.0",
   "description": "Visualize data from the Colorado Avalanche Information Center",
   "scripts": {

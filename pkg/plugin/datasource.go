@@ -9,12 +9,14 @@ import (
 )
 
 type CaicDatasource struct {
-	client caic.Client
+	client *caic.Client
 }
 
 func caicDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	caicURL := "https://www.avalanche.state.co.us/"
-	return caic.NewClient(caicURL, http.DefaultClient), nil
+	caicURL := "https://www.avalanche.state.co.us"
+	return &CaicDatasource{
+		client: caic.NewClient(caicURL, http.DefaultClient),
+	}, nil
 }
 
 func (s *CaicDatasource) Dispose() {

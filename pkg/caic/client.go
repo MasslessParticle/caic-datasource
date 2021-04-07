@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
 type Client struct {
@@ -31,10 +33,12 @@ func NewClient(caicURL string, http doer) *Client {
 }
 
 func (c *Client) CanConnect() bool {
-	_, err := c.doRequest()
+	resp, err := c.doRequest()
 	if err != nil {
+		log.DefaultLogger.Error(err.Error())
 		return false
 	}
+	resp.Body.Close()
 
 	return true
 }
@@ -44,6 +48,7 @@ func (c *Client) StateSummary() ([]Zone, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -54,7 +59,7 @@ func (c *Client) StateSummary() ([]Zone, error) {
 }
 
 func (c *Client) doRequest() (*http.Response, error) {
-	req, err := http.NewRequest("get", c.caicURL+"/caic/fx_map.php", nil)
+	req, err := http.NewRequest("GET", c.caicURL+"/caic/fx_map.php", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +68,6 @@ func (c *Client) doRequest() (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New(fmt.Sprint("unexpected status code ", resp.StatusCode))
