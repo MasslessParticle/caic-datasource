@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
@@ -18,7 +19,7 @@ type Client struct {
 type Zone struct {
 	Name   string
 	Url    string
-	Rating string
+	Rating int
 }
 
 type doer interface {
@@ -86,8 +87,13 @@ func parseResponse(caicResponse string) []Zone {
 			// Index:  m[1], TODO: I don't need it right now
 			Name:   m[2],
 			Url:    m[3],
-			Rating: m[4],
+			Rating: toInt(m[4]),
 		})
 	}
 	return z
+}
+
+func toInt(num string) int {
+	n, _ := strconv.Atoi(num)
+	return n
 }

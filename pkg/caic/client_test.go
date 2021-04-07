@@ -26,9 +26,9 @@ func TestClientGetsStateSummary(t *testing.T) {
 		zones, _ := client.StateSummary()
 
 		expected := []caic.Zone{
-			{"Zone 0", "http://caic-url.com/zone_0", "3"},
-			{"Zone 1", "http://caic-url.com/zone_1", "2"},
-			{"Zone 12", "http://caic-url.com/zone_12", "1"},
+			{"Zone 0", "http://caic-url.com/zone_0", 3},
+			{"Zone 1", "http://caic-url.com/zone_1", 2},
+			{"Zone 12", "http://caic-url.com/zone_12", 1},
 		}
 
 		require.Equal(t, zones, expected)
@@ -39,9 +39,9 @@ func TestClientGetsStateSummary(t *testing.T) {
 		zones, _ := client.StateSummary()
 
 		expected := []caic.Zone{
-			{"Zone 0", "http://caic-url.com/zone_0", "3"},
-			{"Zone 1", "http://caic-url.com/zone_1", "2"},
-			{"Zone 12", "http://caic-url.com/zone_12", "1"},
+			{"Zone 0", "http://caic-url.com/zone_0", 3},
+			{"Zone 1", "http://caic-url.com/zone_1", 2},
+			{"Zone 12", "http://caic-url.com/zone_12", 1},
 		}
 
 		require.Equal(t, zones, expected)

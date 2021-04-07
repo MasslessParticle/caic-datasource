@@ -58,16 +58,17 @@ func (h *Handler) getZones(req *backend.QueryDataRequest) ([]caic.Zone, error) {
 
 func (h *Handler) zonesToResponse(zones []caic.Zone) backend.DataResponse {
 	var names []string
-	var rating []string
+	var rating []int64
 	for _, z := range zones {
 		names = append(names, z.Name)
-		rating = append(rating, z.Rating)
+		rating = append(rating, int64(z.Rating))
 	}
 
 	response := backend.DataResponse{}
 	frame := data.NewFrame("Zones")
 	frame.Fields = append(frame.Fields, data.NewField("name", nil, names))
 	frame.Fields = append(frame.Fields, data.NewField("rating", nil, rating))
+	response.Frames = append(response.Frames, frame)
 
 	return response
 }
