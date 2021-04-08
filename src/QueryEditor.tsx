@@ -1,30 +1,26 @@
+import defaults from 'lodash/defaults';
 import React, { PureComponent } from 'react';
-import { Select } from '@grafana/ui';
+import { InlineFormLabel, Select } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
-import { MyDataSourceOptions, ZoneQuery } from './types';
+import { defaultQuery, MyDataSourceOptions, ZoneQuery } from './types';
 
 const ZONES: Array<SelectableValue<string>> = [
-  { label: 'Entire State', value: 'entire_statea' },
-  { label: 'Steamboat & Flat Tops', value: 'steamboat_flat_tops' },
-  { label: 'Front Range', value: 'front_range' },
-  { label: 'Vail & Summit County', value: 'vail_summit_county' },
-  { label: 'Sawatch Range', value: 'sawatch_range' },
-  { label: 'Aspen', value: 'aspen' },
-  { label: 'Gunnison', value: 'gunnison' },
-  { label: 'Grand Mesa', value: 'grand_mesa' },
-  { label: 'Northern San Juan', value: 'northern_san_juan' },
-  { label: 'Southern San Juan', value: 'southern_san_juan' },
-  { label: 'Sangre de Cristo', value: 'sangre_de_criso' },
-  { label: 'Northern Mountains', value: 'northern_mountains' },
-  { label: 'Central Mountains', value: 'central_mountians' },
-  { label: 'Southern Mountains', value: 'southern_mountains' },
+  { label: 'Entire State', value: '-1' },
+  { label: 'Steamboat & Flat Tops', value: '0' },
+  { label: 'Front Range', value: '1' },
+  { label: 'Vail & Summit County', value: '2' },
+  { label: 'Sawatch Range', value: '3' },
+  { label: 'Aspen', value: '4' },
+  { label: 'Gunnison', value: '5' },
+  { label: 'Grand Mesa', value: '6' },
+  { label: 'Northern San Juan', value: '7' },
+  { label: 'Southern San Juan', value: '8' },
+  { label: 'Sangre de Cristo', value: '9' },
+  { label: 'Northern Mountains', value: '10' },
+  { label: 'Central Mountains', value: '11' },
+  { label: 'Southern Mountains', value: '12' },
 ];
-
-const DEFAULT_ZONE = {
-  label: 'Entire State',
-  value: 'entire_state',
-};
 
 type Props = QueryEditorProps<DataSource, ZoneQuery, MyDataSourceOptions>;
 
@@ -36,9 +32,20 @@ export class QueryEditor extends PureComponent<Props> {
   };
 
   render() {
+    const query = defaults(this.props.query, defaultQuery);
+    const { zone } = query;
+
     return (
       <div className="gf-form">
-        <Select width={20} options={ZONES} value={DEFAULT_ZONE} onChange={this.onRegionChange} />
+        <div className="gf-form-inline">
+          <InlineFormLabel width={12} className="zone-label" tooltip="select a geographic zone">
+            Select a Geographic Zone
+          </InlineFormLabel>
+          <Select width={30} options={ZONES} value={zone} onChange={this.onRegionChange} />
+          <div className="gf-form gf-form--grow">
+            <div className="gf-form-label gf-form-label--grow" />
+          </div>
+        </div>
       </div>
     );
   }
