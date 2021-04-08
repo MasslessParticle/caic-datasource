@@ -1,22 +1,16 @@
 package plugin
 
 import (
-	"net/http"
-
 	"github.com/grafana/caic-datasource/pkg/caic"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 )
 
-type CaicDatasource struct {
-	client *caic.Client
+type CaicClient interface {
+	CanConnect() bool
+	StateSummary() ([]caic.Zone, error)
 }
 
-func caicDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	caicURL := "https://www.avalanche.state.co.us"
-	return &CaicDatasource{
-		client: caic.NewClient(caicURL, http.DefaultClient),
-	}, nil
+type CaicDatasource struct {
+	Client CaicClient
 }
 
 func (s *CaicDatasource) Dispose() {

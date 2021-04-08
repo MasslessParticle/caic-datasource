@@ -13,8 +13,7 @@ import (
 )
 
 // Provides everything the framework needs to handle CAIC requests
-func DatasourceOpts() datasource.ServeOpts {
-	im := datasource.NewInstanceManager(caicDataSourceInstance)
+func DatasourceOpts(im instancemgmt.InstanceManager) datasource.ServeOpts {
 	h := &Handler{
 		im: im, //handler can instantiate datasource with the instance manager. The instance is whatever caicDataSourceInstance
 	}
@@ -53,7 +52,7 @@ func (h *Handler) getZones(req *backend.QueryDataRequest) ([]caic.Zone, error) {
 		return nil, err
 	}
 
-	return ds.client.StateSummary()
+	return ds.Client.StateSummary()
 }
 
 func (h *Handler) zonesToResponse(zones []caic.Zone) backend.DataResponse {
@@ -82,7 +81,7 @@ func (h *Handler) CheckHealth(ctx context.Context, req *backend.CheckHealthReque
 		}, nil
 	}
 
-	if !ds.client.CanConnect() {
+	if !ds.Client.CanConnect() {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: "Error reaching CAIC site",
