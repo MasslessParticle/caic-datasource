@@ -1,8 +1,6 @@
 package plugin
 
-import (
-	"github.com/grafana/caic-datasource/pkg/caic"
-)
+import "github.com/grafana/caic-datasource/pkg/caic"
 
 type CaicClient interface {
 	CanConnect() bool

@@ -17,6 +17,7 @@ type Client struct {
 }
 
 type Zone struct {
+	Index  int
 	Name   string
 	Url    string
 	Rating int
@@ -84,7 +85,7 @@ func parseResponse(caicResponse string) []Zone {
 	var z []Zone
 	for _, m := range matches {
 		z = append(z, Zone{
-			// Index:  m[1], TODO: I don't need it right now
+			Index:  toInt(m[1]),
 			Name:   m[2],
 			Url:    m[3],
 			Rating: toInt(m[4]),

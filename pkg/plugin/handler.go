@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/grafana/caic-datasource/pkg/caic"
@@ -37,9 +38,18 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 		return nil, err
 	}
 
+	filter := struct {
+		Zone int `json:"zone"`
+	}{}
+
 	response := backend.NewQueryDataResponse()
-	zoneData := h.zonesToResponse(zones)
 	for _, q := range req.Queries { //I'm unsure of multiple queries from my datasource?
+		err := json.Unmarshal(q.JSON, &filter)
+		if err != nil {
+			return nil, err
+		}
+
+		zoneData := h.zonesToResponse(zones, filter.Zone)
 		response.Responses[q.RefID] = zoneData
 	}
 
@@ -55,12 +65,14 @@ func (h *Handler) getZones(req *backend.QueryDataRequest) ([]caic.Zone, error) {
 	return ds.Client.StateSummary()
 }
 
-func (h *Handler) zonesToResponse(zones []caic.Zone) backend.DataResponse {
+func (h *Handler) zonesToResponse(zones []caic.Zone, requestedZone int) backend.DataResponse {
 	var names []string
 	var rating []int64
 	for _, z := range zones {
-		names = append(names, z.Name)
-		rating = append(rating, int64(z.Rating))
+		if requestedZone == -1 || z.Index == requestedZone {
+			names = append(names, z.Name)
+			rating = append(rating, int64(z.Rating))
+		}
 	}
 
 	response := backend.DataResponse{}
