@@ -12,18 +12,8 @@ import (
 )
 
 func TestClientGetsStateSummary(t *testing.T) {
-	fakeHttp := newSpyHttpClient()
-	client := caic.NewClient(baseURL, fakeHttp)
-
-	t.Run("it calls the right url for the whole state", func(t *testing.T) {
-		client.StateSummary()
-		require.Equal(t, baseURL+"/caic/fx_map.php", fakeHttp.req.URL.String())
-		require.Equal(t, http.MethodGet, fakeHttp.req.Method)
-	})
-
 	t.Run("it returns an array of state zones", func(t *testing.T) {
-		fakeHttp.resp = mockCaicPage
-		zones, _ := client.StateSummary()
+		tc := setup(homePage, http.StatusOK, nil)
 
 		expected := []caic.Zone{
 			{0, "Zone 0", "http://caic-url.com/zone_0", 3},
@@ -31,48 +21,54 @@ func TestClientGetsStateSummary(t *testing.T) {
 			{12, "Zone 12", "http://caic-url.com/zone_12", 1},
 		}
 
-		require.Equal(t, zones, expected)
-	})
+		zones, _ := tc.caicClend.StateSummary()
 
-	t.Run("it returns an array of state zones", func(t *testing.T) {
-		fakeHttp.resp = mockCaicPage
-		zones, _ := client.StateSummary()
-
-		expected := []caic.Zone{
-			{0, "Zone 0", "http://caic-url.com/zone_0", 3},
-			{1, "Zone 1", "http://caic-url.com/zone_1", 2},
-			{12, "Zone 12", "http://caic-url.com/zone_12", 1},
-		}
-
+		require.Equal(t, baseURL+"/caic/fx_map.php", tc.fakeHttp.req.URL.String())
+		require.Equal(t, http.MethodGet, tc.fakeHttp.req.Method)
 		require.Equal(t, zones, expected)
 	})
 
 	t.Run("it returns an error if the CAIC website can't be reached", func(t *testing.T) {
-		fakeHttp.respCode = http.StatusNotFound
-		_, err := client.StateSummary()
+		tc := setup("", http.StatusNotFound, nil)
 
+		_, err := tc.caicClend.StateSummary()
 		require.NotNil(t, err)
 	})
 }
 
 func TestClientCanConnect(t *testing.T) {
-	fakeHttp := newSpyHttpClient()
-	client := caic.NewClient(baseURL, fakeHttp)
-
 	t.Run("it returns true when it can connect", func(t *testing.T) {
-		require.True(t, client.CanConnect())
+		tc := setup("", http.StatusOK, nil)
+		require.True(t, tc.caicClend.CanConnect())
 	})
 
 	t.Run("return false when it gets a non 200", func(t *testing.T) {
-		fakeHttp.respCode = http.StatusBadGateway
-		require.False(t, client.CanConnect())
+		tc := setup("", http.StatusBadGateway, nil)
+		require.False(t, tc.caicClend.CanConnect())
 	})
 
 	t.Run("return false when the client has an error", func(t *testing.T) {
-		fakeHttp.respCode = http.StatusOK
-		fakeHttp.err = errors.New("something bad happened")
-		require.False(t, client.CanConnect())
+		tc := setup("", http.StatusOK, errors.New("something bad happened"))
+		require.False(t, tc.caicClend.CanConnect())
 	})
+}
+
+type testContext struct {
+	fakeHttp  *spyHttpClient
+	caicClend *caic.Client
+}
+
+func setup(response string, responseCode int, httpError error) testContext {
+	fakeHttp := &spyHttpClient{
+		resp:     response,
+		respCode: responseCode,
+		err:      httpError,
+	}
+
+	return testContext{
+		fakeHttp:  fakeHttp,
+		caicClend: caic.NewClient(baseURL, fakeHttp),
+	}
 }
 
 type spyHttpClient struct {
@@ -80,12 +76,6 @@ type spyHttpClient struct {
 	resp     string
 	respCode int
 	err      error
-}
-
-func newSpyHttpClient() *spyHttpClient {
-	return &spyHttpClient{
-		respCode: 200,
-	}
 }
 
 func (c *spyHttpClient) Do(r *http.Request) (*http.Response, error) {
@@ -96,8 +86,10 @@ func (c *spyHttpClient) Do(r *http.Request) (*http.Response, error) {
 	}, c.err
 }
 
-var baseURL = "http://www.caic-url.com"
-var mockCaicPage = `
+var (
+	baseURL = "http://www.caic-url.com"
+
+	homePage = `
 zone[0]='Zone 0';
 url[0]='http://caic-url.com/zone_0';
 rating[0]=3;
@@ -110,3 +102,4 @@ zone[12]='Zone 12';
 url[12]='http://caic-url.com/zone_12';
 rating[12]=1;
 `
+)
