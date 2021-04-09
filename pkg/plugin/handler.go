@@ -80,16 +80,24 @@ func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (back
 func (h *Handler) createResponse(zones []caic.Zone) backend.DataResponse {
 	var names []string
 	var rating []int64
+	var aboveTreeline []int64
+	var nearTreeline []int64
+	var belowTreeline []int64
 	for _, z := range zones {
 		names = append(names, z.Name)
 		rating = append(rating, int64(z.Rating))
-
+		aboveTreeline = append(aboveTreeline, int64(z.AboveTreeline))
+		nearTreeline = append(nearTreeline, int64(z.NearTreeline))
+		belowTreeline = append(belowTreeline, int64(z.BelowTreeline))
 	}
 
 	response := backend.DataResponse{}
 	frame := data.NewFrame("Zones")
 	frame.Fields = append(frame.Fields, data.NewField("name", nil, names))
 	frame.Fields = append(frame.Fields, data.NewField("rating", nil, rating))
+	frame.Fields = append(frame.Fields, data.NewField("aboveTreeline", nil, aboveTreeline))
+	frame.Fields = append(frame.Fields, data.NewField("nearTreeline", nil, nearTreeline))
+	frame.Fields = append(frame.Fields, data.NewField("belowTreeline", nil, belowTreeline))
 	response.Frames = append(response.Frames, frame)
 	return response
 }

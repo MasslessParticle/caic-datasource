@@ -46,7 +46,14 @@ func TestQueryData(t *testing.T) {
 
 	t.Run("returns the specified zone", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{Index: 2, Name: "Zone 2", Rating: 3}
+		im.client.singleZone <- caic.Zone{
+			Index:         2,
+			Name:          "Zone 2",
+			Rating:        4,
+			AboveTreeline: 2,
+			NearTreeline:  1,
+			BelowTreeline: 4,
+		}
 
 		opts := plugin.DatasourceOpts(im)
 		res, _ := opts.QueryDataHandler.QueryData(
@@ -68,7 +75,16 @@ func TestQueryData(t *testing.T) {
 		require.Equal(t, "Zone 2", frame.At(0, 0).(string))
 
 		require.Equal(t, "rating", frame.Fields[1].Name)
-		require.Equal(t, int64(3), frame.At(1, 0).(int64))
+		require.Equal(t, int64(4), frame.At(1, 0).(int64))
+
+		require.Equal(t, "aboveTreeline", frame.Fields[2].Name)
+		require.Equal(t, int64(2), frame.At(2, 0).(int64))
+
+		require.Equal(t, "nearTreeline", frame.Fields[3].Name)
+		require.Equal(t, int64(1), frame.At(3, 0).(int64))
+
+		require.Equal(t, "belowTreeline", frame.Fields[4].Name)
+		require.Equal(t, int64(4), frame.At(4, 0).(int64))
 	})
 
 	t.Run("returns different zones for different queries", func(t *testing.T) {
