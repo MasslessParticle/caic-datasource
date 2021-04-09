@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/grafana/caic-datasource/pkg/caic"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
@@ -32,47 +32,56 @@ type Handler struct {
 
 // Handles queries for CAIC Zone data
 func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	zones, err := h.getZones(req)
-	if err != nil {
-		log.DefaultLogger.Error(err.Error())
-		return nil, err
-	}
-
 	filter := struct {
 		Zone string `json:"zone"`
 	}{}
 
 	response := backend.NewQueryDataResponse()
-	for _, q := range req.Queries { //I'm unsure of multiple queries from my datasource?
+	for _, q := range req.Queries {
 		err := json.Unmarshal(q.JSON, &filter)
+		if err != nil {
+			return nil, errors.New(fmt.Sprint("bad query: ", err.Error()))
+		}
+
+		zoneData, err := h.queryZones(req, filter.Zone)
 		if err != nil {
 			return nil, err
 		}
 
-		zoneData := h.zonesToResponse(zones, filter.Zone)
 		response.Responses[q.RefID] = zoneData
 	}
 
 	return response, nil
 }
 
-func (h *Handler) getZones(req *backend.QueryDataRequest) ([]caic.Zone, error) {
+func (h *Handler) queryZones(req *backend.QueryDataRequest, requestedZone string) (backend.DataResponse, error) {
 	ds, err := h.datasource(req.PluginContext)
 	if err != nil {
-		return nil, err
+		return backend.DataResponse{}, err
 	}
 
-	return ds.Client.StateSummary()
+	if requestedZone == "entire-state" {
+		zones, err := ds.Client.StateSummary()
+		if err != nil {
+			return backend.DataResponse{}, err
+		}
+		return h.createResponse(zones), nil
+	}
+
+	zone, err := ds.Client.RegionSummary(requestedZone)
+	if err != nil {
+		return backend.DataResponse{}, err
+	}
+	return h.createResponse([]caic.Zone{zone}), nil
 }
 
-func (h *Handler) zonesToResponse(zones []caic.Zone, requestedZone string) backend.DataResponse {
+func (h *Handler) createResponse(zones []caic.Zone) backend.DataResponse {
 	var names []string
 	var rating []int64
 	for _, z := range zones {
-		if requestedZone == "entire-state" || z.ID == requestedZone {
-			names = append(names, z.Name)
-			rating = append(rating, int64(z.Rating))
-		}
+		names = append(names, z.Name)
+		rating = append(rating, int64(z.Rating))
+
 	}
 
 	response := backend.DataResponse{}
@@ -80,7 +89,6 @@ func (h *Handler) zonesToResponse(zones []caic.Zone, requestedZone string) backe
 	frame.Fields = append(frame.Fields, data.NewField("name", nil, names))
 	frame.Fields = append(frame.Fields, data.NewField("rating", nil, rating))
 	response.Frames = append(response.Frames, frame)
-
 	return response
 }
 

@@ -7,7 +7,7 @@ import { defaultQuery, MyDataSourceOptions, ZoneQuery } from './types';
 
 const ZONES: Array<SelectableValue<string>> = [
   { label: 'Entire State', value: 'entire-state' },
-  { label: 'Steamboat & Flat Tops', value: 'steamboard-flat-tops' },
+  { label: 'Steamboat & Flat Tops', value: 'steamboat-flat-tops' },
   { label: 'Front Range', value: 'front-range' },
   { label: 'Vail & Summit County', value: 'vail-summit-county' },
   { label: 'Sawatch Range', value: 'sawatch' },
