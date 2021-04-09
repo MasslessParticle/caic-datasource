@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
@@ -33,11 +34,12 @@ type Handler struct {
 // Handles queries for CAIC Zone data
 func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	filter := struct {
-		Zone string `json:"zone"`
+		Zone caic.Region `json:"zone"`
 	}{}
 
 	response := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
+		log.DefaultLogger.Info(string(q.JSON))
 		err := json.Unmarshal(q.JSON, &filter)
 		if err != nil {
 			return nil, errors.New(fmt.Sprint("bad query: ", err.Error()))
@@ -54,13 +56,13 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 	return response, nil
 }
 
-func (h *Handler) queryZones(req *backend.QueryDataRequest, requestedZone string) (backend.DataResponse, error) {
+func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (backend.DataResponse, error) {
 	ds, err := h.datasource(req.PluginContext)
 	if err != nil {
 		return backend.DataResponse{}, err
 	}
 
-	if requestedZone == "entire-state" {
+	if r == caic.EntireState {
 		zones, err := ds.Client.StateSummary()
 		if err != nil {
 			return backend.DataResponse{}, err
@@ -68,7 +70,7 @@ func (h *Handler) queryZones(req *backend.QueryDataRequest, requestedZone string
 		return h.createResponse(zones), nil
 	}
 
-	zone, err := ds.Client.RegionSummary(requestedZone)
+	zone, err := ds.Client.RegionSummary(r)
 	if err != nil {
 		return backend.DataResponse{}, err
 	}

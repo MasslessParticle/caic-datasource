@@ -17,9 +17,9 @@ func TestClientGetsStateSummary(t *testing.T) {
 		tc.fakeHttp.resp <- homePage
 
 		expected := []caic.Zone{
-			{ID: "zone-0", Name: "Zone 0", Rating: 3},
-			{ID: "zone-1", Name: "Zone 1", Rating: 2},
-			{ID: "zone-12", Name: "Zone 12", Rating: 1},
+			{Index: 0, Name: "Zone 0", Rating: 3},
+			{Index: 1, Name: "Zone 1", Rating: 2},
+			{Index: 12, Name: "Zone 12", Rating: 1},
 		}
 
 		zones, _ := tc.caicClient.StateSummary()
@@ -57,23 +57,18 @@ func TestClientCanConnect(t *testing.T) {
 func TestGetRegionSummary(t *testing.T) {
 	t.Run("returns the forecast by elevation for a single zone", func(t *testing.T) {
 		tc := setup(http.StatusOK, nil)
-		tc.fakeHttp.resp <- forecastContainer
 		tc.fakeHttp.resp <- forecastFragment
 
-		zone, _ := tc.caicClient.RegionSummary("front-range")
-
-		require.Equal(t, baseURL+"/forecasts/backcountry-avalanche/front-range/", tc.fakeHttp.reqs[0].URL.String())
+		zone, _ := tc.caicClient.RegionSummary(caic.SteamboatFlatTops)
+		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
 		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[0].Method)
-
-		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[1].URL.String())
-		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[1].Method)
 
 		require.Equal(
 			t,
 			zone,
 			caic.Zone{
-				ID:            "front-range",
-				Name:          "Front Range",
+				Index:         0,
+				Name:          caic.SteamboatFlatTops.String(),
 				Rating:        4,
 				AboveTreeline: 3,
 				NearTreeline:  2,
@@ -137,29 +132,6 @@ rating[1]=2;
 zone[12]='Zone 12';
 url[12]='http://caic-url.com/forecasts/backcountry-avalanche/zone-12/';
 rating[12]=1;
-`
-
-	forecastContainer = `
-<head>
-	<title>Front Range</title>
-</head>
-<body>
-	<div class="site-container">
-		<div class="site-inner">
-			<div>
-				<div>
-					<main>
-						<article>
-							<div>
-								<iframe src="/caic/pub_bc_avo.php?zone_id=0"></iframe>
-							</div>
-						</article>
-					</main>
-				</div>	
-			</div>
-		</div>
-	</div>
-</body>
 `
 
 	forecastFragment = `

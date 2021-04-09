@@ -18,7 +18,7 @@ type Client struct {
 }
 
 type Zone struct {
-	ID            string
+	Index         Region
 	Name          string
 	Rating        int
 	AboveTreeline int
@@ -51,24 +51,24 @@ func (c *Client) StateSummary() ([]Zone, error) {
 		return nil, err
 	}
 
-	zoneIdRatingPattern := `zone\[\d+\]='(.+)';\nurl\[\d+\]='.+\/forecasts\/backcountry-avalanche\/(.+)\/';\nrating\[\d+\]=(\d)`
+	zoneIdRatingPattern := `zone\[(\d+)\]='(.+)';\nurl\[\d+\]='(.+)';\nrating\[\d+\]=(\d)`
 	regex := *regexp.MustCompile(zoneIdRatingPattern)
 	matches := regex.FindAllStringSubmatch(resp, -1)
 
 	var z []Zone
 	for _, m := range matches {
 		z = append(z, Zone{
-			ID:     m[2],
-			Name:   m[1],
-			Rating: toInt(m[3]),
+			Index:  Region(toInt(m[1])),
+			Name:   m[2],
+			Rating: toInt(m[4]),
 		})
 	}
 
 	return z, nil
 }
 
-func (c *Client) RegionSummary(region string) (Zone, error) {
-	path := fmt.Sprintf("/forecasts/backcountry-avalanche/%s/", region)
+func (c *Client) RegionSummary(r Region) (Zone, error) {
+	path := fmt.Sprintf("/caic/pub_bc_avo.php?zone_id=%d", r)
 	resp, err := c.doRequest(path)
 	if err != nil {
 		return Zone{}, err
@@ -79,28 +79,16 @@ func (c *Client) RegionSummary(region string) (Zone, error) {
 		return Zone{}, err
 	}
 
-	name := doc.Find("head > title").Nodes[0].FirstChild.Data
-	above, near, below := c.getRatings(doc)
-
-	return Zone{
-		ID:            region,
-		Name:          name,
-		Rating:        max(above, near, below),
-		AboveTreeline: above,
-		NearTreeline:  near,
-		BelowTreeline: below,
-	}, nil
-}
-
-func (c *Client) getRatings(doc *goquery.Document) (int, int, int) {
-	forecastPath, _ := doc.Find("body > div.site-container > div.site-inner > div > div > main > article > div > iframe").Attr("src")
-	resp, err := c.doRequest(forecastPath)
-	if err != nil {
-		return 0, 0, 0
+	z := Zone{
+		Index:         r,
+		Name:          r.String(),
+		AboveTreeline: ratingFor(aboveTreeline, doc),
+		NearTreeline:  ratingFor(nearTreeline, doc),
+		BelowTreeline: ratingFor(belowTreeline, doc),
 	}
+	z.Rating = max(z.AboveTreeline, z.NearTreeline, z.BelowTreeline)
 
-	forecastDoc, _ := toDocument(resp)
-	return ratingFor(aboveTreeline, forecastDoc), ratingFor(nearTreeline, forecastDoc), ratingFor(belowTreeline, forecastDoc)
+	return z, nil
 }
 
 func (c *Client) CanConnect() bool {

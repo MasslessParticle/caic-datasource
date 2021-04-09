@@ -13,11 +13,11 @@ import (
 )
 
 func TestQueryData(t *testing.T) {
-	t.Run("returns all zones when zone is entire-state", func(t *testing.T) {
+	t.Run("returns all zones when zone is caic.EntireState", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.zones = []caic.Zone{
-			{ID: "zone-1", Name: "zone 1", Rating: 1},
-			{ID: "zone-2", Name: "zone 2", Rating: 3},
+			{Index: 1, Name: "zone 1", Rating: 1},
+			{Index: 2, Name: "zone 2", Rating: 3},
 		}
 
 		opts := plugin.DatasourceOpts(im)
@@ -27,7 +27,7 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":"entire-state"}`),
+						JSON:  []byte(`{"zone":-1}`),
 					},
 				},
 			},
@@ -46,7 +46,7 @@ func TestQueryData(t *testing.T) {
 
 	t.Run("returns the specified zone", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{ID: "zone-2", Name: "Zone 2", Rating: 3}
+		im.client.singleZone <- caic.Zone{Index: 2, Name: "Zone 2", Rating: 3}
 
 		opts := plugin.DatasourceOpts(im)
 		res, _ := opts.QueryDataHandler.QueryData(
@@ -55,7 +55,7 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":"zone-2"}`),
+						JSON:  []byte(`{"zone":2}`),
 					},
 				},
 			},
@@ -73,8 +73,8 @@ func TestQueryData(t *testing.T) {
 
 	t.Run("returns different zones for different queries", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{ID: "zone-2", Name: "Zone 2", Rating: 3}
-		im.client.singleZone <- caic.Zone{ID: "zone-3", Name: "Zone 3", Rating: 3}
+		im.client.singleZone <- caic.Zone{Index: 2, Name: "Zone 2", Rating: 3}
+		im.client.singleZone <- caic.Zone{Index: 3, Name: "Zone 3", Rating: 3}
 
 		opts := plugin.DatasourceOpts(im)
 		res, _ := opts.QueryDataHandler.QueryData(
@@ -83,11 +83,11 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":"zone-2"}`),
+						JSON:  []byte(`{"zone":2}`),
 					},
 					{
 						RefID: "B",
-						JSON:  []byte(`{"zone":"zone-3"}`),
+						JSON:  []byte(`{"zone":3}`),
 					},
 				},
 			},
@@ -104,7 +104,7 @@ func TestQueryData(t *testing.T) {
 
 	t.Run("return an error if it can't get zones", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{ID: "zone-2", Name: "Zone 2", Rating: 3}
+		im.client.singleZone <- caic.Zone{Index: 2, Name: "Zone 2", Rating: 3}
 		im.client.err = errors.New("something bad")
 
 		opts := plugin.DatasourceOpts(im)
@@ -114,7 +114,7 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":"zone-2"}`),
+						JSON:  []byte(`{"zone":2}`),
 					},
 				},
 			},
@@ -126,9 +126,9 @@ func TestQueryData(t *testing.T) {
 	t.Run("returns returns an error if the request has bad json", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.zones = []caic.Zone{
-			{ID: "zone-1", Name: "zone 1", Rating: 1},
-			{ID: "zone-2", Name: "zone 2", Rating: 3},
-			{ID: "zone-3", Name: "zone 3", Rating: 4},
+			{Index: 1, Name: "zone 1", Rating: 1},
+			{Index: 2, Name: "zone 2", Rating: 3},
+			{Index: 3, Name: "zone 3", Rating: 4},
 		}
 
 		opts := plugin.DatasourceOpts(im)
@@ -138,13 +138,13 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":2}`), //can't marshal into string
+						JSON:  []byte(`{"zone": "2"}`), //can't marshal into int
 					},
 				},
 			},
 		)
 
-		require.Contains(t, err.Error(), "json: cannot unmarshal number into Go struct field .zone of type string")
+		require.Contains(t, err.Error(), "json: cannot unmarshal string into Go struct field .zone of type caic.Region")
 	})
 }
 func TestCheckHealthHandler(t *testing.T) {
@@ -229,7 +229,7 @@ func (c *fakeCaicClient) StateSummary() ([]caic.Zone, error) {
 	return c.zones, c.err
 }
 
-func (c *fakeCaicClient) RegionSummary(region string) (caic.Zone, error) {
+func (c *fakeCaicClient) RegionSummary(r caic.Region) (caic.Zone, error) {
 	select {
 	case zone := <-c.singleZone:
 		return zone, c.err

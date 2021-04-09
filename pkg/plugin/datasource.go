@@ -5,7 +5,7 @@ import "github.com/grafana/caic-datasource/pkg/caic"
 type CaicClient interface {
 	CanConnect() bool
 	StateSummary() ([]caic.Zone, error)
-	RegionSummary(string) (caic.Zone, error)
+	RegionSummary(caic.Region) (caic.Zone, error)
 }
 
 type CaicDatasource struct {

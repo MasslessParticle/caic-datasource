@@ -1,11 +1,25 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
+export enum Region {
+  EntireState = -1,
+  SteamboatFlatTops,
+  FrontRange,
+  VailSummitCounty,
+  SawatchRange,
+  Aspen,
+  Gunnison,
+  GrandMesa,
+  NorthernSanJuan,
+  SouthernSanJuan,
+  SangreDeCristo,
+}
+
 export interface ZoneQuery extends DataQuery {
-  zone?: string;
+  zone?: Region;
 }
 
 export const defaultQuery: Partial<ZoneQuery> = {
-  zone: 'entire-state',
+  zone: Region.EntireState,
 };
 
 /**
