@@ -16,16 +16,16 @@ func TestClientGetsStateSummary(t *testing.T) {
 		tc := setup(homePage, http.StatusOK, nil)
 
 		expected := []caic.Zone{
-			{0, "Zone 0", "http://caic-url.com/zone_0", 3},
-			{1, "Zone 1", "http://caic-url.com/zone_1", 2},
-			{12, "Zone 12", "http://caic-url.com/zone_12", 1},
+			{"zone-0", "Zone 0", 3},
+			{"zone-1", "Zone 1", 2},
+			{"zone-12", "Zone 12", 1},
 		}
 
 		zones, _ := tc.caicClend.StateSummary()
 
 		require.Equal(t, baseURL+"/caic/fx_map.php", tc.fakeHttp.req.URL.String())
 		require.Equal(t, http.MethodGet, tc.fakeHttp.req.Method)
-		require.Equal(t, zones, expected)
+		require.Equal(t, expected, zones)
 	})
 
 	t.Run("it returns an error if the CAIC website can't be reached", func(t *testing.T) {
@@ -91,15 +91,15 @@ var (
 
 	homePage = `
 zone[0]='Zone 0';
-url[0]='http://caic-url.com/zone_0';
+url[0]='http://caic-url.com/forecasts/backcountry-avalanche/zone-0/';
 rating[0]=3;
 --
 zone[1]='Zone 1';
-url[1]='http://caic-url.com/zone_1';
+url[1]='http://caic-url.com/forecasts/backcountry-avalanche/zone-1/';
 rating[1]=2;
 --
 zone[12]='Zone 12';
-url[12]='http://caic-url.com/zone_12';
+url[12]='http://caic-url.com/forecasts/backcountry-avalanche/zone-12/';
 rating[12]=1;
 `
 )

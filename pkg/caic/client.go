@@ -17,9 +17,8 @@ type Client struct {
 }
 
 type Zone struct {
-	Index  int
+	ID     string
 	Name   string
-	Url    string
 	Rating int
 }
 
@@ -78,17 +77,16 @@ func (c *Client) doRequest() (*http.Response, error) {
 }
 
 func parseResponse(caicResponse string) []Zone {
-	r := `zone\[(\d+)\]='(.+)';\nurl\[\d+\]='(.+)';\nrating\[\d+\]=(\d)`
+	r := `zone\[\d+\]='(.+)';\nurl\[\d+\]='.+\/forecasts\/backcountry-avalanche\/(.+)\/';\nrating\[\d+\]=(\d)`
 	regex := *regexp.MustCompile(r)
 	matches := regex.FindAllStringSubmatch(caicResponse, -1)
 
 	var z []Zone
 	for _, m := range matches {
 		z = append(z, Zone{
-			Index:  toInt(m[1]),
-			Name:   m[2],
-			Url:    m[3],
-			Rating: toInt(m[4]),
+			ID:     m[2],
+			Name:   m[1],
+			Rating: toInt(m[3]),
 		})
 	}
 	return z

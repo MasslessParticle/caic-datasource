@@ -39,7 +39,7 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 	}
 
 	filter := struct {
-		Zone int `json:"zone"`
+		Zone string `json:"zone"`
 	}{}
 
 	response := backend.NewQueryDataResponse()
@@ -65,11 +65,11 @@ func (h *Handler) getZones(req *backend.QueryDataRequest) ([]caic.Zone, error) {
 	return ds.Client.StateSummary()
 }
 
-func (h *Handler) zonesToResponse(zones []caic.Zone, requestedZone int) backend.DataResponse {
+func (h *Handler) zonesToResponse(zones []caic.Zone, requestedZone string) backend.DataResponse {
 	var names []string
 	var rating []int64
 	for _, z := range zones {
-		if requestedZone == -1 || z.Index == requestedZone {
+		if requestedZone == "entire-state" || z.ID == requestedZone {
 			names = append(names, z.Name)
 			rating = append(rating, int64(z.Rating))
 		}

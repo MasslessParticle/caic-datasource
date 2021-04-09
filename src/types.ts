@@ -1,11 +1,11 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
 export interface ZoneQuery extends DataQuery {
-  zone?: number;
+  zone?: string;
 }
 
 export const defaultQuery: Partial<ZoneQuery> = {
-  zone: -1,
+  zone: 'entire-state',
 };
 
 /**

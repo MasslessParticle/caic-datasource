@@ -16,8 +16,8 @@ func TestQueryData(t *testing.T) {
 	t.Run("returns all zones when zone is -1", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.zones = []caic.Zone{
-			{Index: 1, Name: "zone 1", Rating: 1},
-			{Index: 2, Name: "zone 2", Rating: 3},
+			{ID: "zone-1", Name: "zone 1", Rating: 1},
+			{ID: "zone-2", Name: "zone 2", Rating: 3},
 		}
 
 		opts := plugin.DatasourceOpts(im)
@@ -27,7 +27,7 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":-1}`),
+						JSON:  []byte(`{"zone":"entire-state"}`),
 					},
 				},
 			},
@@ -47,9 +47,9 @@ func TestQueryData(t *testing.T) {
 	t.Run("returns the specified zone", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.zones = []caic.Zone{
-			{Index: 1, Name: "zone 1", Rating: 1},
-			{Index: 2, Name: "zone 2", Rating: 3},
-			{Index: 3, Name: "zone 3", Rating: 4},
+			{ID: "zone-1", Name: "zone 1", Rating: 1},
+			{ID: "zone-2", Name: "zone 2", Rating: 3},
+			{ID: "zone-3", Name: "zone 3", Rating: 4},
 		}
 
 		opts := plugin.DatasourceOpts(im)
@@ -59,7 +59,7 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":2}`),
+						JSON:  []byte(`{"zone":"zone-2"}`),
 					},
 				},
 			},
@@ -78,9 +78,9 @@ func TestQueryData(t *testing.T) {
 	t.Run("returns different zones for different queries", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.zones = []caic.Zone{
-			{Index: 1, Name: "zone 1", Rating: 1},
-			{Index: 2, Name: "zone 2", Rating: 3},
-			{Index: 3, Name: "zone 3", Rating: 4},
+			{ID: "zone-1", Name: "zone 1", Rating: 1},
+			{ID: "zone-2", Name: "zone 2", Rating: 3},
+			{ID: "zone-3", Name: "zone 3", Rating: 4},
 		}
 
 		opts := plugin.DatasourceOpts(im)
@@ -90,11 +90,11 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":2}`),
+						JSON:  []byte(`{"zone":"zone-2"}`),
 					},
 					{
 						RefID: "B",
-						JSON:  []byte(`{"zone":3}`),
+						JSON:  []byte(`{"zone":"zone-3"}`),
 					},
 				},
 			},
@@ -128,9 +128,9 @@ func TestQueryData(t *testing.T) {
 	t.Run("returns returns an error if the request has bad json", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.zones = []caic.Zone{
-			{Index: 1, Name: "zone 1", Rating: 1},
-			{Index: 2, Name: "zone 2", Rating: 3},
-			{Index: 3, Name: "zone 3", Rating: 4},
+			{ID: "zone-1", Name: "zone 1", Rating: 1},
+			{ID: "zone-2", Name: "zone 2", Rating: 3},
+			{ID: "zone-3", Name: "zone 3", Rating: 4},
 		}
 
 		opts := plugin.DatasourceOpts(im)
@@ -140,13 +140,13 @@ func TestQueryData(t *testing.T) {
 				Queries: []backend.DataQuery{
 					{
 						RefID: "A",
-						JSON:  []byte(`{"zone":"2"}`), //can't marshal string into int
+						JSON:  []byte(`{"zone":2}`), //can't marshal into string
 					},
 				},
 			},
 		)
 
-		require.EqualError(t, err, "json: cannot unmarshal string into Go struct field .zone of type int")
+		require.EqualError(t, err, "json: cannot unmarshal number into Go struct field .zone of type string")
 	})
 }
 func TestCheckHealthHandler(t *testing.T) {
