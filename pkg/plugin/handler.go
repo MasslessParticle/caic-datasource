@@ -37,7 +37,7 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 		Zone caic.Region `json:"zone"`
 	}{}
 
-	response := backend.NewQueryDataResponse()
+	qr := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
 		log.DefaultLogger.Info(string(q.JSON))
 		err := json.Unmarshal(q.JSON, &filter)
@@ -45,39 +45,107 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 			return nil, errors.New(fmt.Sprint("bad query: ", err.Error()))
 		}
 
-		zoneData, err := h.queryZones(req, filter.Zone)
+		zoneFrame, err := h.queryZones(req, filter.Zone)
 		if err != nil {
 			return nil, err
 		}
 
-		response.Responses[q.RefID] = zoneData
+		problemFrame, err := h.queryProblems(req, filter.Zone)
+		if err != nil {
+			return nil, err
+		}
+
+		resp := backend.DataResponse{}
+		resp.Frames = append(resp.Frames, zoneFrame)
+
+		if filter.Zone != caic.EntireState {
+			resp.Frames = append(resp.Frames, problemFrame)
+		}
+		qr.Responses[q.RefID] = resp
 	}
 
-	return response, nil
+	return qr, nil
 }
 
-func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (backend.DataResponse, error) {
+func (h *Handler) queryProblems(req *backend.QueryDataRequest, r caic.Region) (*data.Frame, error) {
 	ds, err := h.datasource(req.PluginContext)
 	if err != nil {
-		return backend.DataResponse{}, err
+		return nil, err
+	}
+
+	aspectDanger, err := ds.Client.RegionAspectDanger(r)
+	if err != nil {
+		return nil, err
+	}
+
+	ordinals := []string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
+	degrees := []int32{0, 45, 90, 135, 180, 225, 270, 315}
+
+	aboveTreeline := []int32{
+		toInt(aspectDanger.AboveTreeline.North),
+		toInt(aspectDanger.AboveTreeline.NorthEast),
+		toInt(aspectDanger.AboveTreeline.East),
+		toInt(aspectDanger.AboveTreeline.SouthEast),
+		toInt(aspectDanger.AboveTreeline.South),
+		toInt(aspectDanger.AboveTreeline.SouthWest),
+		toInt(aspectDanger.AboveTreeline.West),
+		toInt(aspectDanger.AboveTreeline.NorthWest),
+	}
+
+	nearTreeline := []int32{
+		toInt(aspectDanger.NearTreeline.North),
+		toInt(aspectDanger.NearTreeline.NorthEast),
+		toInt(aspectDanger.NearTreeline.East),
+		toInt(aspectDanger.NearTreeline.SouthEast),
+		toInt(aspectDanger.NearTreeline.South),
+		toInt(aspectDanger.NearTreeline.SouthWest),
+		toInt(aspectDanger.NearTreeline.West),
+		toInt(aspectDanger.NearTreeline.NorthWest),
+	}
+
+	belowTreeline := []int32{
+		toInt(aspectDanger.BelowTreeline.North),
+		toInt(aspectDanger.BelowTreeline.NorthEast),
+		toInt(aspectDanger.BelowTreeline.East),
+		toInt(aspectDanger.BelowTreeline.SouthEast),
+		toInt(aspectDanger.BelowTreeline.South),
+		toInt(aspectDanger.BelowTreeline.SouthWest),
+		toInt(aspectDanger.BelowTreeline.West),
+		toInt(aspectDanger.BelowTreeline.NorthWest),
+	}
+
+	frame := data.NewFrame("AspectDanger")
+	frame.Fields = append(frame.Fields, data.NewField("ordinals", nil, ordinals))
+	frame.Fields = append(frame.Fields, data.NewField("degrees", nil, degrees))
+	frame.Fields = append(frame.Fields, data.NewField("aboveTreeline", nil, aboveTreeline))
+	frame.Fields = append(frame.Fields, data.NewField("nearTreeline", nil, nearTreeline))
+	frame.Fields = append(frame.Fields, data.NewField("belowTreeline", nil, belowTreeline))
+
+	return frame, nil
+}
+
+func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (*data.Frame, error) {
+	ds, err := h.datasource(req.PluginContext)
+	if err != nil {
+		return nil, err
 	}
 
 	if r == caic.EntireState {
 		zones, err := ds.Client.StateSummary()
 		if err != nil {
-			return backend.DataResponse{}, err
+			return nil, err
 		}
 		return h.createResponse(zones), nil
 	}
 
 	zone, err := ds.Client.RegionSummary(r)
 	if err != nil {
-		return backend.DataResponse{}, err
+		return nil, err
 	}
 	return h.createResponse([]caic.Zone{zone}), nil
 }
 
-func (h *Handler) createResponse(zones []caic.Zone) backend.DataResponse {
+func (h *Handler) createResponse(zones []caic.Zone) *data.Frame {
 	var names []string
 	var rating []int64
 	var aboveTreeline []int64
@@ -91,15 +159,13 @@ func (h *Handler) createResponse(zones []caic.Zone) backend.DataResponse {
 		belowTreeline = append(belowTreeline, int64(z.BelowTreeline))
 	}
 
-	response := backend.DataResponse{}
 	frame := data.NewFrame("Zones")
 	frame.Fields = append(frame.Fields, data.NewField("name", nil, names))
 	frame.Fields = append(frame.Fields, data.NewField("rating", nil, rating))
 	frame.Fields = append(frame.Fields, data.NewField("aboveTreeline", nil, aboveTreeline))
 	frame.Fields = append(frame.Fields, data.NewField("nearTreeline", nil, nearTreeline))
 	frame.Fields = append(frame.Fields, data.NewField("belowTreeline", nil, belowTreeline))
-	response.Frames = append(response.Frames, frame)
-	return response
+	return frame
 }
 
 func (h *Handler) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
@@ -136,4 +202,11 @@ func (h *Handler) datasource(pc backend.PluginContext) (*CaicDatasource, error) 
 	}
 
 	return ds, nil
+}
+
+func toInt(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
 }

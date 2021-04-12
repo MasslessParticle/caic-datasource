@@ -27,7 +27,7 @@ const (
 )
 
 func (c *Client) StateSummary() ([]Zone, error) {
-	resp, err := c.doRequest("/caic/fx_map.php")
+	resp, err := c.doRequest(homePath)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *Client) StateSummary() ([]Zone, error) {
 }
 
 func (c *Client) RegionSummary(r Region) (Zone, error) {
-	path := fmt.Sprintf("/caic/pub_bc_avo.php?zone_id=%d", r)
+	path := fmt.Sprintf(regionPath, r)
 	resp, err := c.doRequest(path)
 	if err != nil {
 		return Zone{}, err
@@ -73,7 +73,7 @@ func (c *Client) RegionSummary(r Region) (Zone, error) {
 }
 
 func (c *Client) CanConnect() bool {
-	_, err := c.doRequest("/caic/fx_map.php")
+	_, err := c.doRequest(homePath)
 	return err == nil
 }
 

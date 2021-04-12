@@ -7,6 +7,11 @@ import (
 	"net/http"
 )
 
+const (
+	homePath   = "/caic/fx_map.php"
+	regionPath = "/caic/pub_bc_avo.php?zone_id=%d"
+)
+
 type Client struct {
 	http    doer
 	caicURL string

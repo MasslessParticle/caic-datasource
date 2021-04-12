@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestQueryData(t *testing.T) {
+func TestQueryForZones(t *testing.T) {
 	t.Run("returns all zones when zone is caic.EntireState", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.zones = []caic.Zone{
@@ -44,7 +44,7 @@ func TestQueryData(t *testing.T) {
 		require.Equal(t, frame.At(1, 1).(int64), int64(3))
 	})
 
-	t.Run("returns the specified zone", func(t *testing.T) {
+	t.Run("returns the specified zone with aspect", func(t *testing.T) {
 		im := newFakeInstanceManager()
 		im.client.singleZone <- caic.Zone{
 			Index:         2,
@@ -163,6 +163,93 @@ func TestQueryData(t *testing.T) {
 		require.Contains(t, err.Error(), "json: cannot unmarshal string into Go struct field .zone of type caic.Region")
 	})
 }
+
+func TestQueryForProblems(t *testing.T) {
+	t.Run("it returns aspect problem data", func(t *testing.T) {
+		im := newFakeInstanceManager()
+		im.client.singleZone <- caic.Zone{}
+		im.client.aspectDanger = caic.AspectDanger{
+			Region:        caic.SteamboatFlatTops,
+			BelowTreeline: caic.OrdinalDanger{},
+			NearTreeline: caic.OrdinalDanger{
+				North:     true,
+				NorthEast: true,
+				NorthWest: true,
+			},
+			AboveTreeline: caic.OrdinalDanger{
+				North:     true,
+				NorthEast: true,
+				NorthWest: true,
+			},
+		}
+
+		opts := plugin.DatasourceOpts(im)
+		res, _ := opts.QueryDataHandler.QueryData(
+			context.Background(),
+			&backend.QueryDataRequest{
+				Queries: []backend.DataQuery{
+					{
+						RefID: "A",
+						JSON:  []byte(`{"zone":2}`),
+					},
+				},
+			},
+		)
+
+		frame := res.Responses["A"].Frames[1]
+
+		require.Equal(t, "ordinals", frame.Fields[0].Name)
+		expectedDirections := []string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
+		for i := 0; i < frame.Fields[0].Len(); i++ {
+			require.Equal(t, expectedDirections[i], frame.Fields[0].At(i).(string))
+		}
+
+		require.Equal(t, "degrees", frame.Fields[1].Name)
+		expected := []int32{0, 45, 90, 135, 180, 225, 270, 315}
+		for i := 0; i < frame.Fields[0].Len(); i++ {
+			require.Equal(t, expected[i], frame.Fields[1].At(i).(int32))
+		}
+
+		require.Equal(t, "aboveTreeline", frame.Fields[2].Name)
+		expected = []int32{1, 1, 0, 0, 0, 0, 0, 1}
+		for i := 0; i < frame.Fields[0].Len(); i++ {
+			require.Equal(t, expected[i], frame.Fields[2].At(i).(int32))
+		}
+
+		require.Equal(t, "nearTreeline", frame.Fields[3].Name)
+		expected = []int32{1, 1, 0, 0, 0, 0, 0, 1}
+		for i := 0; i < frame.Fields[0].Len(); i++ {
+			require.Equal(t, expected[i], frame.Fields[3].At(i).(int32))
+		}
+
+		require.Equal(t, "belowTreeline", frame.Fields[4].Name)
+		expected = []int32{0, 0, 0, 0, 0, 0, 0, 0}
+		for i := 0; i < frame.Fields[0].Len(); i++ {
+			require.Equal(t, expected[i], frame.Fields[4].At(i).(int32))
+		}
+	})
+
+	t.Run("it doesn't return anything if region is EntireState", func(t *testing.T) {
+		im := newFakeInstanceManager()
+		im.client.singleZone <- caic.Zone{}
+
+		opts := plugin.DatasourceOpts(im)
+		res, _ := opts.QueryDataHandler.QueryData(
+			context.Background(),
+			&backend.QueryDataRequest{
+				Queries: []backend.DataQuery{
+					{
+						RefID: "A",
+						JSON:  []byte(`{"zone":-1}`),
+					},
+				},
+			},
+		)
+
+		require.Len(t, res.Responses["A"].Frames, 1)
+		require.Equal(t, "Zones", res.Responses["A"].Frames[0].Name)
+	})
+}
 func TestCheckHealthHandler(t *testing.T) {
 	t.Run("HealthStatusOK when can connect", func(t *testing.T) {
 		im := newFakeInstanceManager()
@@ -210,7 +297,8 @@ func TestCheckHealthHandler(t *testing.T) {
 func newFakeInstanceManager() *fakeInstanceManager {
 	return &fakeInstanceManager{
 		client: &fakeCaicClient{
-			singleZone: make(chan caic.Zone, 10),
+			singleZone:   make(chan caic.Zone, 10),
+			aspectDanger: caic.AspectDanger{},
 		},
 	}
 }
@@ -231,10 +319,11 @@ func (im *fakeInstanceManager) Do(pc backend.PluginContext, fn instancemgmt.Inst
 }
 
 type fakeCaicClient struct {
-	canConnect bool
-	zones      []caic.Zone
-	singleZone chan caic.Zone
-	err        error
+	canConnect   bool
+	zones        []caic.Zone
+	aspectDanger caic.AspectDanger
+	singleZone   chan caic.Zone
+	err          error
 }
 
 func (c *fakeCaicClient) CanConnect() bool {
@@ -252,4 +341,8 @@ func (c *fakeCaicClient) RegionSummary(r caic.Region) (caic.Zone, error) {
 	default:
 		panic("called without any responses setup")
 	}
+}
+
+func (c *fakeCaicClient) RegionAspectDanger(caic.Region) (caic.AspectDanger, error) {
+	return c.aspectDanger, c.err
 }
