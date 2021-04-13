@@ -26,38 +26,41 @@ const (
 	belowTreeline
 )
 
-func (c *Client) StateSummary() ([]Zone, error) {
-	resp, err := c.doRequest(homePath)
+func (c *Client) RegionSummary(r Region) ([]Zone, error) {
+	if r == EntireState {
+		return c.stateSummary()
+	}
+	return c.singleRegionSummary(r)
+}
+
+func (c *Client) CanConnect() bool {
+	_, err := c.doRequest(homePath)
+	return err == nil
+}
+
+func (c *Client) stateSummary() ([]Zone, error) {
+	var zones []Zone
+	for i := SteamboatFlatTops; i <= SangreDeCristo; i++ {
+		z, err := c.singleRegionSummary(Region(i))
+		if err != nil {
+			return nil, err
+		}
+		zones = append(zones, z...)
+	}
+
+	return zones, nil
+}
+
+func (c *Client) singleRegionSummary(r Region) ([]Zone, error) {
+	path := fmt.Sprintf(regionPath, r)
+	resp, err := c.doRequest(path)
 	if err != nil {
 		return nil, err
 	}
 
-	zoneIdRatingPattern := `zone\[(\d+)\]='(.+)';\nurl\[\d+\]='(.+)';\nrating\[\d+\]=(\d)`
-	regex := *regexp.MustCompile(zoneIdRatingPattern)
-	matches := regex.FindAllStringSubmatch(resp, -1)
-
-	var z []Zone
-	for _, m := range matches {
-		z = append(z, Zone{
-			Index:  Region(toInt(m[1])),
-			Name:   m[2],
-			Rating: toInt(m[4]),
-		})
-	}
-
-	return z, nil
-}
-
-func (c *Client) RegionSummary(r Region) (Zone, error) {
-	path := fmt.Sprintf(regionPath, r)
-	resp, err := c.doRequest(path)
-	if err != nil {
-		return Zone{}, err
-	}
-
 	doc, err := toDocument(resp)
 	if err != nil {
-		return Zone{}, err
+		return nil, err
 	}
 
 	z := Zone{
@@ -69,12 +72,7 @@ func (c *Client) RegionSummary(r Region) (Zone, error) {
 	}
 	z.Rating = max(z.AboveTreeline, z.NearTreeline, z.BelowTreeline)
 
-	return z, nil
-}
-
-func (c *Client) CanConnect() bool {
-	_, err := c.doRequest(homePath)
-	return err == nil
+	return []Zone{z}, nil
 }
 
 func toDocument(s string) (*goquery.Document, error) {

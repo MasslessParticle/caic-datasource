@@ -15,7 +15,7 @@ import (
 func TestQueryForZones(t *testing.T) {
 	t.Run("returns all zones when zone is caic.EntireState", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.zones = []caic.Zone{
+		im.client.zones <- []caic.Zone{
 			{Index: 1, Name: "zone 1", Rating: 1},
 			{Index: 2, Name: "zone 2", Rating: 3},
 		}
@@ -46,13 +46,15 @@ func TestQueryForZones(t *testing.T) {
 
 	t.Run("returns the specified zone with aspect", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{
-			Index:         2,
-			Name:          "Zone 2",
-			Rating:        4,
-			AboveTreeline: 2,
-			NearTreeline:  1,
-			BelowTreeline: 4,
+		im.client.zones <- []caic.Zone{
+			{
+				Index:         2,
+				Name:          "Zone 2",
+				Rating:        4,
+				AboveTreeline: 2,
+				NearTreeline:  1,
+				BelowTreeline: 4,
+			},
 		}
 
 		opts := plugin.DatasourceOpts(im)
@@ -89,8 +91,8 @@ func TestQueryForZones(t *testing.T) {
 
 	t.Run("returns different zones for different queries", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{Index: 2, Name: "Zone 2", Rating: 3}
-		im.client.singleZone <- caic.Zone{Index: 3, Name: "Zone 3", Rating: 3}
+		im.client.zones <- []caic.Zone{{Index: 2, Name: "Zone 2", Rating: 3}}
+		im.client.zones <- []caic.Zone{{Index: 3, Name: "Zone 3", Rating: 3}}
 
 		opts := plugin.DatasourceOpts(im)
 		res, _ := opts.QueryDataHandler.QueryData(
@@ -120,7 +122,7 @@ func TestQueryForZones(t *testing.T) {
 
 	t.Run("return an error if it can't get zones", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{Index: 2, Name: "Zone 2", Rating: 3}
+		im.client.zones <- []caic.Zone{}
 		im.client.err = errors.New("something bad")
 
 		opts := plugin.DatasourceOpts(im)
@@ -141,11 +143,7 @@ func TestQueryForZones(t *testing.T) {
 
 	t.Run("returns returns an error if the request has bad json", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.zones = []caic.Zone{
-			{Index: 1, Name: "zone 1", Rating: 1},
-			{Index: 2, Name: "zone 2", Rating: 3},
-			{Index: 3, Name: "zone 3", Rating: 4},
-		}
+		im.client.zones <- []caic.Zone{{Index: 2, Name: "zone 2", Rating: 3}}
 
 		opts := plugin.DatasourceOpts(im)
 		_, err := opts.QueryDataHandler.QueryData(
@@ -167,7 +165,7 @@ func TestQueryForZones(t *testing.T) {
 func TestQueryForProblems(t *testing.T) {
 	t.Run("it returns aspect problem data", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{}
+		im.client.zones <- []caic.Zone{}
 		im.client.aspectDanger = caic.AspectDanger{
 			Region:        caic.SteamboatFlatTops,
 			BelowTreeline: caic.OrdinalDanger{},
@@ -229,9 +227,9 @@ func TestQueryForProblems(t *testing.T) {
 		}
 	})
 
-	t.Run("it doesn't return anything if region is EntireState", func(t *testing.T) {
+	t.Run("it returns aspect dangers even if region is EntireState", func(t *testing.T) {
 		im := newFakeInstanceManager()
-		im.client.singleZone <- caic.Zone{}
+		im.client.zones <- []caic.Zone{}
 
 		opts := plugin.DatasourceOpts(im)
 		res, _ := opts.QueryDataHandler.QueryData(
@@ -246,8 +244,15 @@ func TestQueryForProblems(t *testing.T) {
 			},
 		)
 
-		require.Len(t, res.Responses["A"].Frames, 1)
+		require.Len(t, res.Responses["A"].Frames, 2)
+
+		frame := res.Responses["A"].Frames[1]
 		require.Equal(t, "Zones", res.Responses["A"].Frames[0].Name)
+		require.Equal(t, "ordinals", frame.Fields[0].Name)
+		require.Equal(t, "degrees", frame.Fields[1].Name)
+		require.Equal(t, "aboveTreeline", frame.Fields[2].Name)
+		require.Equal(t, "nearTreeline", frame.Fields[3].Name)
+		require.Equal(t, "belowTreeline", frame.Fields[4].Name)
 	})
 }
 func TestCheckHealthHandler(t *testing.T) {
@@ -297,7 +302,7 @@ func TestCheckHealthHandler(t *testing.T) {
 func newFakeInstanceManager() *fakeInstanceManager {
 	return &fakeInstanceManager{
 		client: &fakeCaicClient{
-			singleZone:   make(chan caic.Zone, 10),
+			zones:        make(chan []caic.Zone, 10),
 			aspectDanger: caic.AspectDanger{},
 		},
 	}
@@ -320,9 +325,8 @@ func (im *fakeInstanceManager) Do(pc backend.PluginContext, fn instancemgmt.Inst
 
 type fakeCaicClient struct {
 	canConnect   bool
-	zones        []caic.Zone
 	aspectDanger caic.AspectDanger
-	singleZone   chan caic.Zone
+	zones        chan []caic.Zone
 	err          error
 }
 
@@ -330,14 +334,10 @@ func (c *fakeCaicClient) CanConnect() bool {
 	return c.canConnect
 }
 
-func (c *fakeCaicClient) StateSummary() ([]caic.Zone, error) {
-	return c.zones, c.err
-}
-
-func (c *fakeCaicClient) RegionSummary(r caic.Region) (caic.Zone, error) {
+func (c *fakeCaicClient) RegionSummary(r caic.Region) ([]caic.Zone, error) {
 	select {
-	case zone := <-c.singleZone:
-		return zone, c.err
+	case z := <-c.zones:
+		return z, c.err
 	default:
 		panic("called without any responses setup")
 	}

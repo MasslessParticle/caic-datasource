@@ -11,32 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClientGetsStateSummary(t *testing.T) {
-	t.Run("it returns an array of state zones", func(t *testing.T) {
-		tc := setup(http.StatusOK, nil)
-		tc.fakeHttp.resp <- homePage
-
-		expected := []caic.Zone{
-			{Index: 0, Name: "Zone 0", Rating: 3},
-			{Index: 1, Name: "Zone 1", Rating: 2},
-			{Index: 12, Name: "Zone 12", Rating: 1},
-		}
-
-		zones, _ := tc.caicClient.StateSummary()
-
-		require.Equal(t, baseURL+"/caic/fx_map.php", tc.fakeHttp.reqs[0].URL.String())
-		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[0].Method)
-		require.Equal(t, expected, zones)
-	})
-
-	t.Run("it returns an error if the CAIC website can't be reached", func(t *testing.T) {
-		tc := setup(http.StatusNotFound, nil)
-
-		_, err := tc.caicClient.StateSummary()
-		require.NotNil(t, err)
-	})
-}
-
 func TestClientCanConnect(t *testing.T) {
 	t.Run("it returns true when it can connect", func(t *testing.T) {
 		tc := setup(http.StatusOK, nil)
@@ -57,7 +31,7 @@ func TestClientCanConnect(t *testing.T) {
 func TestGetRegionSummary(t *testing.T) {
 	t.Run("returns the forecast by elevation for a single zone", func(t *testing.T) {
 		tc := setup(http.StatusOK, nil)
-		tc.fakeHttp.resp <- forecastFragment
+		tc.fakeHttp.resp <- forecast
 
 		zone, _ := tc.caicClient.RegionSummary(caic.SteamboatFlatTops)
 		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
@@ -66,14 +40,58 @@ func TestGetRegionSummary(t *testing.T) {
 		require.Equal(
 			t,
 			zone,
-			caic.Zone{
-				Index:         0,
-				Name:          caic.SteamboatFlatTops.String(),
-				Rating:        4,
-				AboveTreeline: 3,
-				NearTreeline:  2,
-				BelowTreeline: 4,
+			[]caic.Zone{
+				{
+					Index:         0,
+					Name:          caic.SteamboatFlatTops.String(),
+					Rating:        4,
+					AboveTreeline: 3,
+					NearTreeline:  2,
+					BelowTreeline: 4,
+				},
 			})
+	})
+
+	t.Run("it returns an array of state zones when region is EntireState", func(t *testing.T) {
+		tc := setup(http.StatusOK, nil)
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+		tc.fakeHttp.resp <- forecast
+
+		expected := []caic.Zone{
+			{Index: caic.SteamboatFlatTops, Name: caic.SteamboatFlatTops.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.FrontRange, Name: caic.FrontRange.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.VailSummitCounty, Name: caic.VailSummitCounty.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.SawatchRange, Name: caic.SawatchRange.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.Aspen, Name: caic.Aspen.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.Gunnison, Name: caic.Gunnison.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.GrandMesa, Name: caic.GrandMesa.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.NorthernSanJuan, Name: caic.NorthernSanJuan.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.SouthernSanJuan, Name: caic.SouthernSanJuan.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+			{Index: caic.SangreDeCristo, Name: caic.SangreDeCristo.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
+		}
+
+		zones, _ := tc.caicClient.RegionSummary(caic.EntireState)
+
+		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
+		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=9", tc.fakeHttp.reqs[9].URL.String())
+		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[0].Method)
+
+		require.Equal(t, expected, zones)
+	})
+
+	t.Run("it returns an error if the CAIC website can't be reached", func(t *testing.T) {
+		tc := setup(http.StatusNotFound, nil)
+
+		_, err := tc.caicClient.RegionSummary(caic.EntireState)
+		require.NotNil(t, err)
 	})
 }
 
@@ -118,23 +136,8 @@ func (c *spyHttpClient) Do(r *http.Request) (*http.Response, error) {
 }
 
 var (
-	baseURL = "http://www.caic-url.com"
-
-	homePage = `
-zone[0]='Zone 0';
-url[0]='http://caic-url.com/forecasts/backcountry-avalanche/zone-0/';
-rating[0]=3;
---
-zone[1]='Zone 1';
-url[1]='http://caic-url.com/forecasts/backcountry-avalanche/zone-1/';
-rating[1]=2;
---
-zone[12]='Zone 12';
-url[12]='http://caic-url.com/forecasts/backcountry-avalanche/zone-12/';
-rating[12]=1;
-`
-
-	forecastFragment = `
+	baseURL  = "http://www.caic-url.com"
+	forecast = `
 <div id="avalanche-forecast">
 	<table class="table table-striped-body table-treeline">
 		<tbody>

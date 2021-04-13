@@ -10,7 +10,6 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
@@ -39,7 +38,6 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 
 	qr := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
-		log.DefaultLogger.Info(string(q.JSON))
 		err := json.Unmarshal(q.JSON, &filter)
 		if err != nil {
 			return nil, errors.New(fmt.Sprint("bad query: ", err.Error()))
@@ -57,14 +55,25 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 
 		resp := backend.DataResponse{}
 		resp.Frames = append(resp.Frames, zoneFrame)
+		resp.Frames = append(resp.Frames, problemFrame)
 
-		if filter.Zone != caic.EntireState {
-			resp.Frames = append(resp.Frames, problemFrame)
-		}
 		qr.Responses[q.RefID] = resp
 	}
 
 	return qr, nil
+}
+
+func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (*data.Frame, error) {
+	ds, err := h.datasource(req.PluginContext)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := ds.Client.RegionSummary(r)
+	if err != nil {
+		return nil, err
+	}
+	return h.createResponse(zones), nil
 }
 
 func (h *Handler) queryProblems(req *backend.QueryDataRequest, r caic.Region) (*data.Frame, error) {
@@ -122,27 +131,6 @@ func (h *Handler) queryProblems(req *backend.QueryDataRequest, r caic.Region) (*
 	frame.Fields = append(frame.Fields, data.NewField("belowTreeline", nil, belowTreeline))
 
 	return frame, nil
-}
-
-func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (*data.Frame, error) {
-	ds, err := h.datasource(req.PluginContext)
-	if err != nil {
-		return nil, err
-	}
-
-	if r == caic.EntireState {
-		zones, err := ds.Client.StateSummary()
-		if err != nil {
-			return nil, err
-		}
-		return h.createResponse(zones), nil
-	}
-
-	zone, err := ds.Client.RegionSummary(r)
-	if err != nil {
-		return nil, err
-	}
-	return h.createResponse([]caic.Zone{zone}), nil
 }
 
 func (h *Handler) createResponse(zones []caic.Zone) *data.Frame {
