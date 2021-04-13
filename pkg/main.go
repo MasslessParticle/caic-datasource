@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/grafana/caic-datasource/pkg/cache"
 	"github.com/grafana/caic-datasource/pkg/caic"
 	"github.com/grafana/caic-datasource/pkg/plugin"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -26,7 +27,10 @@ func main() {
 
 func constructor(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	caicURL := "https://www.avalanche.state.co.us"
+
+	client := caic.NewClient(caicURL, http.DefaultClient)
+	cache := cache.NewCaicClientCache(client)
 	return &plugin.CaicDatasource{
-		Client: caic.NewClient(caicURL, http.DefaultClient),
+		Client: cache,
 	}, nil
 }
