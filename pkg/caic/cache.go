@@ -1,26 +1,24 @@
-package cache
+package caic
 
 import (
 	"sync"
 	"time"
-
-	"github.com/grafana/caic-datasource/pkg/caic"
 )
 
 type client interface {
 	CanConnect() bool
-	Summary(caic.Region) ([]caic.Zone, error)
-	AspectDanger(caic.Region) (caic.AspectDanger, error)
+	Summary(Region) ([]Zone, error)
+	AspectDanger(Region) (AspectDanger, error)
 }
 
 type zone struct {
 	t time.Time
-	z []caic.Zone
+	z []Zone
 }
 
 type aspectDanger struct {
 	t  time.Time
-	ad caic.AspectDanger
+	ad AspectDanger
 }
 
 type Cache struct {
@@ -55,7 +53,7 @@ func WithCacheDuration(d time.Duration) CacheOption {
 
 }
 
-func (c *Cache) Summary(r caic.Region) ([]caic.Zone, error) {
+func (c *Cache) Summary(r Region) ([]Zone, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -77,7 +75,7 @@ func (c *Cache) Summary(r caic.Region) ([]caic.Zone, error) {
 	return z, nil
 }
 
-func (c *Cache) AspectDanger(r caic.Region) (caic.AspectDanger, error) {
+func (c *Cache) AspectDanger(r Region) (AspectDanger, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -88,7 +86,7 @@ func (c *Cache) AspectDanger(r caic.Region) (caic.AspectDanger, error) {
 
 	a, err := c.client.AspectDanger(r)
 	if err != nil {
-		return caic.AspectDanger{}, err
+		return AspectDanger{}, err
 	}
 
 	c.aspectDangerCache[r.String()] = aspectDanger{

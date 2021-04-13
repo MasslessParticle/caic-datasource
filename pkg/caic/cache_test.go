@@ -1,11 +1,10 @@
-package cache_test
+package caic_test
 
 import (
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/grafana/caic-datasource/pkg/cache"
 	"github.com/grafana/caic-datasource/pkg/caic"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +15,7 @@ func TestSummary(t *testing.T) {
 		client.regionResponse <- []caic.Zone{{Name: "Zone 1"}}
 		client.regionResponse <- []caic.Zone{{Name: "Zone 2"}}
 
-		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
+		c := caic.NewCaicClientCache(client, caic.WithCacheDuration(10*time.Millisecond))
 
 		call, err := c.Summary(caic.SteamboatFlatTops)
 		require.Nil(t, err)
@@ -37,7 +36,7 @@ func TestSummary(t *testing.T) {
 	// If incorrect, this test will fail when run with go test -race
 	t.Run("it is threadsafe", func(t *testing.T) {
 		client := newFakeClient()
-		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
+		c := caic.NewCaicClientCache(client, caic.WithCacheDuration(10*time.Millisecond))
 
 		start := make(chan struct{})
 		stop := make(chan struct{})
@@ -56,7 +55,7 @@ func TestSummary(t *testing.T) {
 		client.regionResponse <- []caic.Zone{{Name: "Zone 2"}}
 		client.err <- errors.New("something bad")
 
-		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
+		c := caic.NewCaicClientCache(client, caic.WithCacheDuration(10*time.Millisecond))
 
 		_, err := c.Summary(caic.SteamboatFlatTops)
 		require.NotNil(t, err)
@@ -74,7 +73,7 @@ func TestAspectDangerSummary(t *testing.T) {
 		client.aspectDangerResponse <- caic.AspectDanger{Region: caic.SteamboatFlatTops}
 		client.aspectDangerResponse <- caic.AspectDanger{Region: caic.SawatchRange}
 
-		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
+		c := caic.NewCaicClientCache(client, caic.WithCacheDuration(10*time.Millisecond))
 
 		call, err := c.AspectDanger(caic.SteamboatFlatTops)
 		require.Nil(t, err)
@@ -95,7 +94,7 @@ func TestAspectDangerSummary(t *testing.T) {
 	//If incorrect, this test will fail when run with go test -race
 	t.Run("it is threadsafe", func(t *testing.T) {
 		client := newFakeClient()
-		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
+		c := caic.NewCaicClientCache(client, caic.WithCacheDuration(10*time.Millisecond))
 
 		start := make(chan struct{})
 		stop := make(chan struct{})
@@ -114,7 +113,7 @@ func TestAspectDangerSummary(t *testing.T) {
 		client.aspectDangerResponse <- caic.AspectDanger{Region: caic.Aspen}
 		client.err <- errors.New("something bad")
 
-		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
+		c := caic.NewCaicClientCache(client, caic.WithCacheDuration(10*time.Millisecond))
 
 		_, err := c.AspectDanger(caic.SteamboatFlatTops)
 		require.NotNil(t, err)
@@ -132,13 +131,13 @@ func TestCanConnect(t *testing.T) {
 		client.canConnectResponse <- true
 		client.canConnectResponse <- false
 
-		c := cache.NewCaicClientCache(client)
+		c := caic.NewCaicClientCache(client)
 		require.True(t, c.CanConnect())
 		require.False(t, c.CanConnect())
 	})
 }
 
-func readRegions(start, stop chan struct{}, c *cache.Cache) {
+func readRegions(start, stop chan struct{}, c *caic.Cache) {
 	<-start
 	for {
 		select {
@@ -150,7 +149,7 @@ func readRegions(start, stop chan struct{}, c *cache.Cache) {
 	}
 }
 
-func readAspectDanger(start, stop chan struct{}, c *cache.Cache) {
+func readAspectDanger(start, stop chan struct{}, c *caic.Cache) {
 	<-start
 	for {
 		select {
