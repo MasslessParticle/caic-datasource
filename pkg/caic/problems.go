@@ -25,7 +25,7 @@ var (
 	elevations = []string{"Btl", "Tln", "Alp"}
 )
 
-func (c *Client) RegionAspectDanger(r Region) (AspectDanger, error) {
+func (c *Client) AspectDanger(r Region) (AspectDanger, error) {
 	resp, err := c.doRequest(fmt.Sprintf(regionPath, r))
 	if err != nil {
 		return AspectDanger{}, err

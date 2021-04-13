@@ -9,8 +9,8 @@ import (
 
 type client interface {
 	CanConnect() bool
-	RegionSummary(caic.Region) ([]caic.Zone, error)
-	RegionAspectDanger(caic.Region) (caic.AspectDanger, error)
+	Summary(caic.Region) ([]caic.Zone, error)
+	AspectDanger(caic.Region) (caic.AspectDanger, error)
 }
 
 type zone struct {
@@ -55,7 +55,7 @@ func WithCacheDuration(d time.Duration) CacheOption {
 
 }
 
-func (c *Cache) RegionSummary(r caic.Region) ([]caic.Zone, error) {
+func (c *Cache) Summary(r caic.Region) ([]caic.Zone, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -64,7 +64,7 @@ func (c *Cache) RegionSummary(r caic.Region) ([]caic.Zone, error) {
 		return cached.z, nil
 	}
 
-	z, err := c.client.RegionSummary(r)
+	z, err := c.client.Summary(r)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (c *Cache) RegionSummary(r caic.Region) ([]caic.Zone, error) {
 	return z, nil
 }
 
-func (c *Cache) RegionAspectDanger(r caic.Region) (caic.AspectDanger, error) {
+func (c *Cache) AspectDanger(r caic.Region) (caic.AspectDanger, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -86,7 +86,7 @@ func (c *Cache) RegionAspectDanger(r caic.Region) (caic.AspectDanger, error) {
 		return ad.ad, nil
 	}
 
-	a, err := c.client.RegionAspectDanger(r)
+	a, err := c.client.AspectDanger(r)
 	if err != nil {
 		return caic.AspectDanger{}, err
 	}

@@ -33,7 +33,7 @@ func TestGetRegionSummary(t *testing.T) {
 		tc := setup(http.StatusOK, nil)
 		tc.fakeHttp.resp <- forecast
 
-		zone, _ := tc.caicClient.RegionSummary(caic.SteamboatFlatTops)
+		zone, _ := tc.caicClient.Summary(caic.SteamboatFlatTops)
 		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
 		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[0].Method)
 
@@ -56,7 +56,7 @@ func TestGetRegionSummary(t *testing.T) {
 		tc := setup(http.StatusOK, nil)
 		tc.fakeHttp.resp <- forecastWithNoRating
 
-		zone, _ := tc.caicClient.RegionSummary(caic.SteamboatFlatTops)
+		zone, _ := tc.caicClient.Summary(caic.SteamboatFlatTops)
 		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
 		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[0].Method)
 
@@ -101,7 +101,7 @@ func TestGetRegionSummary(t *testing.T) {
 			{Index: caic.SangreDeCristo, Name: caic.SangreDeCristo.String(), Rating: 4, AboveTreeline: 3, NearTreeline: 2, BelowTreeline: 4},
 		}
 
-		zones, _ := tc.caicClient.RegionSummary(caic.EntireState)
+		zones, _ := tc.caicClient.Summary(caic.EntireState)
 
 		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
 		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=9", tc.fakeHttp.reqs[9].URL.String())
@@ -113,7 +113,7 @@ func TestGetRegionSummary(t *testing.T) {
 	t.Run("it returns an error if the CAIC website can't be reached", func(t *testing.T) {
 		tc := setup(http.StatusNotFound, nil)
 
-		_, err := tc.caicClient.RegionSummary(caic.EntireState)
+		_, err := tc.caicClient.Summary(caic.EntireState)
 		require.NotNil(t, err)
 	})
 }

@@ -26,7 +26,7 @@ const (
 	belowTreeline
 )
 
-func (c *Client) RegionSummary(r Region) ([]Zone, error) {
+func (c *Client) Summary(r Region) ([]Zone, error) {
 	if r == EntireState {
 		return c.stateSummary()
 	}

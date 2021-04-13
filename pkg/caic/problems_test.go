@@ -13,7 +13,7 @@ func TestGetRegionAspectInfo(t *testing.T) {
 		tc := setup(http.StatusOK, nil)
 		tc.fakeHttp.resp <- avalancheProblem
 
-		aspectDanger, _ := tc.caicClient.RegionAspectDanger(caic.SteamboatFlatTops)
+		aspectDanger, _ := tc.caicClient.AspectDanger(caic.SteamboatFlatTops)
 		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
 		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[0].Method)
 
@@ -40,7 +40,7 @@ func TestGetRegionAspectInfo(t *testing.T) {
 	t.Run("it returns an error when the request fails", func(t *testing.T) {
 		tc := setup(http.StatusNotFound, nil)
 
-		_, err := tc.caicClient.RegionAspectDanger(caic.SteamboatFlatTops)
+		_, err := tc.caicClient.AspectDanger(caic.SteamboatFlatTops)
 		require.NotNil(t, err)
 	})
 }

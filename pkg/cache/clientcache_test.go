@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRegionSummary(t *testing.T) {
+func TestSummary(t *testing.T) {
 	t.Run("it caches responses for duration", func(t *testing.T) {
 		client := newFakeClient()
 		client.regionResponse <- []caic.Zone{{Name: "Zone 1"}}
@@ -18,15 +18,15 @@ func TestRegionSummary(t *testing.T) {
 
 		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
 
-		call, err := c.RegionSummary(caic.SteamboatFlatTops)
+		call, err := c.Summary(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
-		cachedCall, err := c.RegionSummary(caic.SteamboatFlatTops)
+		cachedCall, err := c.Summary(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
 		time.Sleep(20 * time.Millisecond)
 
-		secondCall, err := c.RegionSummary(caic.SteamboatFlatTops)
+		secondCall, err := c.Summary(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
 		require.Equal(t, call, cachedCall)
@@ -58,10 +58,10 @@ func TestRegionSummary(t *testing.T) {
 
 		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
 
-		_, err := c.RegionSummary(caic.SteamboatFlatTops)
+		_, err := c.Summary(caic.SteamboatFlatTops)
 		require.NotNil(t, err)
 
-		secondCall, err := c.RegionSummary(caic.SteamboatFlatTops)
+		secondCall, err := c.Summary(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
 		require.Equal(t, "Zone 2", secondCall[0].Name)
@@ -76,15 +76,15 @@ func TestAspectDangerSummary(t *testing.T) {
 
 		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
 
-		call, err := c.RegionAspectDanger(caic.SteamboatFlatTops)
+		call, err := c.AspectDanger(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
-		cachedCall, err := c.RegionAspectDanger(caic.SteamboatFlatTops)
+		cachedCall, err := c.AspectDanger(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
 		time.Sleep(20 * time.Millisecond)
 
-		secondCall, err := c.RegionAspectDanger(caic.SteamboatFlatTops)
+		secondCall, err := c.AspectDanger(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
 		require.Equal(t, call, cachedCall)
@@ -116,10 +116,10 @@ func TestAspectDangerSummary(t *testing.T) {
 
 		c := cache.NewCaicClientCache(client, cache.WithCacheDuration(10*time.Millisecond))
 
-		_, err := c.RegionAspectDanger(caic.SteamboatFlatTops)
+		_, err := c.AspectDanger(caic.SteamboatFlatTops)
 		require.NotNil(t, err)
 
-		secondCall, err := c.RegionAspectDanger(caic.SteamboatFlatTops)
+		secondCall, err := c.AspectDanger(caic.SteamboatFlatTops)
 		require.Nil(t, err)
 
 		require.Equal(t, caic.Aspen, secondCall.Region)
@@ -145,7 +145,7 @@ func readRegions(start, stop chan struct{}, c *cache.Cache) {
 		case <-stop:
 			return
 		default:
-			c.RegionSummary(caic.SteamboatFlatTops)
+			c.Summary(caic.SteamboatFlatTops)
 		}
 	}
 }
@@ -157,7 +157,7 @@ func readAspectDanger(start, stop chan struct{}, c *cache.Cache) {
 		case <-stop:
 			return
 		default:
-			c.RegionAspectDanger(caic.SteamboatFlatTops)
+			c.AspectDanger(caic.SteamboatFlatTops)
 		}
 	}
 }
@@ -187,7 +187,7 @@ func (c *fakeClient) CanConnect() bool {
 	}
 }
 
-func (c *fakeClient) RegionSummary(caic.Region) ([]caic.Zone, error) {
+func (c *fakeClient) Summary(caic.Region) ([]caic.Zone, error) {
 	select {
 	case ret := <-c.regionResponse:
 		return ret, c.error()
@@ -196,7 +196,7 @@ func (c *fakeClient) RegionSummary(caic.Region) ([]caic.Zone, error) {
 	}
 }
 
-func (c *fakeClient) RegionAspectDanger(caic.Region) (caic.AspectDanger, error) {
+func (c *fakeClient) AspectDanger(caic.Region) (caic.AspectDanger, error) {
 	select {
 	case ret := <-c.aspectDangerResponse:
 		return ret, c.error()

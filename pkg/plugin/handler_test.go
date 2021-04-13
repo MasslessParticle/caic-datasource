@@ -334,7 +334,7 @@ func (c *fakeCaicClient) CanConnect() bool {
 	return c.canConnect
 }
 
-func (c *fakeCaicClient) RegionSummary(r caic.Region) ([]caic.Zone, error) {
+func (c *fakeCaicClient) Summary(r caic.Region) ([]caic.Zone, error) {
 	select {
 	case z := <-c.zones:
 		return z, c.err
@@ -343,6 +343,6 @@ func (c *fakeCaicClient) RegionSummary(r caic.Region) ([]caic.Zone, error) {
 	}
 }
 
-func (c *fakeCaicClient) RegionAspectDanger(caic.Region) (caic.AspectDanger, error) {
+func (c *fakeCaicClient) AspectDanger(caic.Region) (caic.AspectDanger, error) {
 	return c.aspectDanger, c.err
 }

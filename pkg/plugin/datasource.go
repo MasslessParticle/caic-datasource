@@ -4,8 +4,8 @@ import "github.com/grafana/caic-datasource/pkg/caic"
 
 type caicClient interface {
 	CanConnect() bool
-	RegionSummary(caic.Region) ([]caic.Zone, error)
-	RegionAspectDanger(caic.Region) (caic.AspectDanger, error)
+	Summary(caic.Region) ([]caic.Zone, error)
+	AspectDanger(caic.Region) (caic.AspectDanger, error)
 }
 
 type CaicDatasource struct {

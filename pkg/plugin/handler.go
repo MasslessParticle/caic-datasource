@@ -69,7 +69,7 @@ func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (*dat
 		return nil, err
 	}
 
-	zones, err := ds.Client.RegionSummary(r)
+	zones, err := ds.Client.Summary(r)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (h *Handler) queryProblems(req *backend.QueryDataRequest, r caic.Region) (*
 		return nil, err
 	}
 
-	aspectDanger, err := ds.Client.RegionAspectDanger(r)
+	aspectDanger, err := ds.Client.AspectDanger(r)
 	if err != nil {
 		return nil, err
 	}
