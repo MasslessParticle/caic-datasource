@@ -97,7 +97,10 @@ func parseRating(s string) int {
 	regex := *regexp.MustCompile(ratingPattern)
 	matches := regex.FindAllStringSubmatch(s, -1)
 
-	return toInt(matches[0][1])
+	if len(matches) > 0 {
+		return toInt(matches[0][1])
+	}
+	return 0
 }
 
 func toInt(num string) int {

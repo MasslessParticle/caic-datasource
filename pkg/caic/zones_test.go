@@ -52,6 +52,29 @@ func TestGetRegionSummary(t *testing.T) {
 			})
 	})
 
+	t.Run("it sets the rating to 0 when there is no rating", func(t *testing.T) {
+		tc := setup(http.StatusOK, nil)
+		tc.fakeHttp.resp <- forecastWithNoRating
+
+		zone, _ := tc.caicClient.RegionSummary(caic.SteamboatFlatTops)
+		require.Equal(t, baseURL+"/caic/pub_bc_avo.php?zone_id=0", tc.fakeHttp.reqs[0].URL.String())
+		require.Equal(t, http.MethodGet, tc.fakeHttp.reqs[0].Method)
+
+		require.Equal(
+			t,
+			zone,
+			[]caic.Zone{
+				{
+					Index:         0,
+					Name:          caic.SteamboatFlatTops.String(),
+					Rating:        4,
+					AboveTreeline: 0,
+					NearTreeline:  2,
+					BelowTreeline: 4,
+				},
+			})
+	})
+
 	t.Run("it returns an array of state zones when region is EntireState", func(t *testing.T) {
 		tc := setup(http.StatusOK, nil)
 		tc.fakeHttp.resp <- forecast
@@ -144,6 +167,38 @@ var (
 			<tr>
 				<td class="today-text above_danger_low" style="">
 						<strong>Considerable (3)</strong>
+				</td>
+				<td class="today-text tomorrow_danger_low">
+						<strong>Low (1)</strong>
+				</td>
+			</tr>
+			<tr>
+				<td class="today-text near_danger_low">
+						<strong>Moderate (2)</strong>
+				</td>
+				<td class="today-text tomorrow_danger_low">
+						<strong>Low (1)</strong>
+				</td>
+			</tr>
+			<tr>
+				<td class="today-text below_danger_moderate">
+						<strong>High (4)</strong>
+				</td>
+				<td class="today-text tomorrow_danger_low">
+						<strong>Low (1)</strong>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+`
+	forecastWithNoRating = `
+<div id="avalanche-forecast">
+	<table class="table table-striped-body table-treeline">
+		<tbody>
+			<tr>
+				<td class="today-text above_danger_low" style="">
+						<strong>No Rating (-)</strong>
 				</td>
 				<td class="today-text tomorrow_danger_low">
 						<strong>Low (1)</strong>
