@@ -29,7 +29,7 @@ type Cache struct {
 	cacheDuration     time.Duration
 }
 
-func NewCaicClientCache(c client, opts ...CacheOption) *Cache {
+func NewClientCache(c client, opts ...CacheOption) *Cache {
 	cache := &Cache{
 		client:            c,
 		regionCache:       make(map[string]zone),

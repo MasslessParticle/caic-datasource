@@ -28,7 +28,7 @@ func constructor(settings backend.DataSourceInstanceSettings) (instancemgmt.Inst
 	caicURL := "https://www.avalanche.state.co.us"
 
 	client := caic.NewClient(caicURL, http.DefaultClient)
-	cache := caic.NewCaicClientCache(client)
+	cache := caic.NewClientCache(client)
 	return &plugin.CaicDatasource{
 		Client: cache,
 	}, nil
