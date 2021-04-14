@@ -17,6 +17,10 @@ const (
 )
 
 func (d Region) String() string {
+	if d == EntireState {
+		return "Entire State"
+	}
+
 	return []string{
 		"Steamboat & Flat Tops",
 		"Front Range",

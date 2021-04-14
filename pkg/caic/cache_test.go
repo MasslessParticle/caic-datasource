@@ -17,15 +17,15 @@ func TestSummary(t *testing.T) {
 
 		cache := caic.NewClientCache(client, caic.WithCacheDuration(10*time.Millisecond))
 
-		call, err := cache.Summary(caic.SteamboatFlatTops)
+		call, err := cache.Summary(caic.EntireState)
 		require.Nil(t, err)
 
-		cachedCall, err := cache.Summary(caic.SteamboatFlatTops)
+		cachedCall, err := cache.Summary(caic.EntireState)
 		require.Nil(t, err)
 
 		time.Sleep(20 * time.Millisecond)
 
-		secondCall, err := cache.Summary(caic.SteamboatFlatTops)
+		secondCall, err := cache.Summary(caic.EntireState)
 		require.Nil(t, err)
 
 		require.Equal(t, call, cachedCall)
