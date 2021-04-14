@@ -1,5 +1,7 @@
 # CAIC datasource for grafana
 
+[![CI](https://github.com/MasslessParticle/ciac-datasource/actions/workflows/ci.yml/badge.svg)](https://github.com/MasslessParticle/ciac-datasource/actions/workflows/ci.yml)
+
 The CAIC datasource allows you to visualize data from the Colorado Avalanche Information Center about current avalanche conditions in the Colorado backcountry.
 
 ## Requirements
