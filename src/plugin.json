@@ -21,18 +21,14 @@
       "CAIC"
     ],
     "logos": {
-      "small": "img/logo.svg",
-      "large": "img/logo.svg"
+      "small": "img/caic_logo.jpg",
+      "large": "img/caic_logo.jpg"
     },
     "links": [
       {
         "name": "Website",
-        "url": "https://github.com/grafana/grafana-starter-datasource-backend"
-      },
-      {
-        "name": "License",
-        "url": "https://github.com/grafana/grafana-starter-datasource-backend/blob/master/LICENSE"
-      }
+        "url": "https://github.com/masslessparticle/caic-datasource"
+      }      
     ],
     "screenshots": [],
     "version": "%VERSION%",
