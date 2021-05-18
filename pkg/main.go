@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/grafana/caic-datasource/pkg/caic"
 	"github.com/grafana/caic-datasource/pkg/plugin"
@@ -13,15 +15,20 @@ import (
 )
 
 func main() {
-	im := datasource.NewInstanceManager(constructor)
-	ds := plugin.DatasourceOpts(im)
+	fmt.Println("Plugin Starting")
+	caicURL := os.Getenv("CAIC_ADDR")
+	fmt.Println("caic URL: ", caicURL)
 
-	if err := datasource.Serve(ds); err != nil {
+	addr := os.Getenv("GF_PLUGIN_GRPC_ADDRESS_" + strings.ReplaceAll(strings.ToUpper("grafana-caic-datasource"), "-", "_"))
+	fmt.Println("addr: ", addr)
+
+	if err := datasource.Manage("grafana-caic-datasource", constructor, datasource.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())
 		os.Exit(1)
 	}
 }
 
+//TODO For this to work with the standalone stuff, the plugin needs
 func constructor(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	caicURL := os.Getenv("CAIC_ADDR")
 	if caicURL == "" {
@@ -30,7 +37,7 @@ func constructor(settings backend.DataSourceInstanceSettings) (instancemgmt.Inst
 
 	client := caic.NewClient(caicURL, http.DefaultClient)
 	cache := caic.NewClientCache(client)
-	return &plugin.CaicDatasource{
+	return &plugin.Handler{
 		Client: cache,
 	}, nil
 }

@@ -8,26 +8,18 @@ import (
 
 	"github.com/grafana/caic-datasource/pkg/caic"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
-// Provides everything the framework needs to handle CAIC requests
-func DatasourceOpts(im instancemgmt.InstanceManager) datasource.ServeOpts {
-	h := &Handler{
-		im: im, //handler can instantiate datasource with the instance manager. The instance is whatever caicDataSourceInstance
-	}
-
-	return datasource.ServeOpts{
-		QueryDataHandler:   h,
-		CheckHealthHandler: h,
-	}
+type caicClient interface {
+	CanConnect() bool
+	Summary(caic.Region) ([]caic.Zone, error)
+	AspectDanger(caic.Region) (caic.AspectDanger, error)
 }
 
 // Handles calls to QueryData and CheckHealth
 type Handler struct {
-	im instancemgmt.InstanceManager
+	Client caicClient
 }
 
 // Handles queries for CAIC Zone data
@@ -64,12 +56,7 @@ func (h *Handler) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 }
 
 func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (*data.Frame, error) {
-	ds, err := h.datasource(req.PluginContext)
-	if err != nil {
-		return nil, err
-	}
-
-	zones, err := ds.Client.Summary(r)
+	zones, err := h.Client.Summary(r)
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +64,7 @@ func (h *Handler) queryZones(req *backend.QueryDataRequest, r caic.Region) (*dat
 }
 
 func (h *Handler) queryProblems(req *backend.QueryDataRequest, r caic.Region) (*data.Frame, error) {
-	ds, err := h.datasource(req.PluginContext)
-	if err != nil {
-		return nil, err
-	}
-
-	aspectDanger, err := ds.Client.AspectDanger(r)
+	aspectDanger, err := h.Client.AspectDanger(r)
 	if err != nil {
 		return nil, err
 	}
@@ -157,15 +139,7 @@ func (h *Handler) createResponse(zones []caic.Zone) *data.Frame {
 }
 
 func (h *Handler) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-	ds, err := h.datasource(req.PluginContext)
-	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: err.Error(),
-		}, nil
-	}
-
-	if !ds.Client.CanConnect() {
+	if !h.Client.CanConnect() {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: "Error reaching CAIC site",
@@ -176,20 +150,6 @@ func (h *Handler) CheckHealth(ctx context.Context, req *backend.CheckHealthReque
 		Status:  backend.HealthStatusOk,
 		Message: "Data source is working",
 	}, nil
-}
-
-func (h *Handler) datasource(pc backend.PluginContext) (*CaicDatasource, error) {
-	i, err := h.im.Get(pc)
-	if err != nil {
-		return nil, err
-	}
-
-	ds, ok := i.(*CaicDatasource)
-	if !ok {
-		return nil, errors.New("bad datasource")
-	}
-
-	return ds, nil
 }
 
 func toInt(b bool) int32 {
