@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/grafana/caic-datasource/pkg/integration"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/plugintest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +18,7 @@ func TestThePlugin(t *testing.T) {
 	defer shutdown()
 
 	env := fmt.Sprintf("CAIC_ADDR=%s", url)
-	client, cleanup, err := integration.StartPlugin(
+	client, cleanup, err := plugintest.StartPlugin(
 		"github.com/grafana/caic-datasource/pkg",
 		"grafana-caic-datasource",
 		8000,
